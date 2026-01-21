@@ -5,10 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiofiles>=25.1.0",
     "aiohttp>=3.13.1",
+    "aiolimiter>=1.2.1",
     "asyncio>=4.0.0",
     "atproto>=0.0.62",
     "certifi>=2025.8.3",
+    "git-lfs>=1.6",
     "ipykernel>=6.30.1",
     "jupyterlab>=4.4.9",
     "matplotlib>=3.10.6",
@@ -16,8 +19,11 @@ dependencies = [
     "notebook>=7.4.6",
     "numpy>=2.3.3",
     "pandas>=2.3.2",
+    "pip>=25.3",
     "python-dateutil>=2.9.0.post0",
     "seaborn>=0.13.2",
     "torch>=2.8.0",
+    "tqdm>=4.67.1",
+    "uvloop>=0.22.1",
     "websockets>=13.1",
 ]

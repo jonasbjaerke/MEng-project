@@ -1,0 +1,13 @@
+# Virtual environments
+.venv/
+
+# Data outputs
+*.json
+*.jsonl
+
+# Plots
+plots/
+*.png
+
+# PDFs
+*.pdf
