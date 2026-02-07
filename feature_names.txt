@@ -1,0 +1,38 @@
+| Column                  | Meaning                         |
+| ----------------------- | ------------------------------- |
+| `A_id`                  | Reposter user ID (DID)          |
+| `S_id`                  | Author user ID (DID)            |
+| `P_id`                  | Post ID (URI)                   |
+| `hashtag`               | Topic used to collect the post  |
+| `label`                 | 1 if A reposted P, 0 otherwise  |
+| `A_follows_S`           | 1 if A follows S                |
+| `A_mentions_S`          | # times A mentioned S           |
+| `A_mentions_S_per`      | % of A’s messages mentioning S  |
+| `S_mentions_A`          | # times S mentioned A           |
+| `S_mentions_A_per`      | % of S’s messages mentioning A  |
+| `A_age_days`            | Days since A registered         |
+| `A_followers`           | # followers of A                |
+| `A_followees`           | # users A follows               |
+| `A_total_posts`         | # posts A has made              |
+| `A_posts_ratio`         | A’s posts ÷ max posts           |
+| `A_followers_per_day`   | Followers ÷ account age         |
+| `A_followees_per_day`   | Followees ÷ account age         |
+| `A_posts_per_day`       | Posts ÷ account age             |
+| `A_profile_has_url`     | 1 if profile contains a URL     |
+| `A_hist_msgs`           | # historical messages collected |
+| `A_hist_repost_pct`     | % of reposts in history         |
+| `A_hist_avg_gap_days`   | Avg days between messages       |
+| `A_hist_avg_engagement` | Avg engagement per message      |
+| `S_age_days`            | Days since S registered         |
+| `S_followers`           | # followers of S                |
+| `S_followees`           | # users S follows               |
+| `S_total_posts`         | # posts S has made              |
+| `S_posts_ratio`         | S’s posts ÷ max posts           |
+| `S_followers_per_day`   | Followers ÷ account age         |
+| `S_followees_per_day`   | Followees ÷ account age         |
+| `S_posts_per_day`       | Posts ÷ account age             |
+| `S_profile_has_url`     | 1 if profile contains a URL     |
+| `S_hist_msgs`           | # historical messages collected |
+| `S_hist_repost_pct`     | % of reposts in history         |
+| `S_hist_avg_gap_days`   | Avg days between messages       |
+| `S_hist_avg_engagement` | Avg engagement per message      |
