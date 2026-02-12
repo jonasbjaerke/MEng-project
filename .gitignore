@@ -12,4 +12,6 @@ plots/
 # PDFs
 *.pdf
 
+*.csv
+
 report
