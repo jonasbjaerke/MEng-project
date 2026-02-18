@@ -15,3 +15,5 @@ plots/
 *.csv
 
 report
+
+__pycache__
