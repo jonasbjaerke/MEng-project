@@ -1,59 +1,80 @@
+import os
+import gc
 import re
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
-from textblob import TextBlob
-
-from pysentimiento.preprocessing import preprocess_tweet
-from pysentimiento import create_analyzer
+# Silence HF noise
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from transformers.utils import logging
+logging.set_verbosity_error()
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from scipy.special import softmax, expit
+from nltk.sentiment import SentimentIntensityAnalyzer
+from textblob import TextBlob
+from pysentimiento import create_analyzer
 
-import readability
-import syntok.segmenter as segmenter
+
+def status(msg):
+    print(f"\r{msg}", end="", flush=True)
+
+# ==========================================================
+# DEVICE SETUP
+# ==========================================================
+
+torch.set_float32_matmul_precision("high")
+
+if torch.backends.mps.is_available():
+    DEVICE = torch.device("mps")
+elif torch.cuda.is_available():
+    DEVICE = torch.device("cuda")
+else:
+    DEVICE = torch.device("cpu")
+
+print("Using device:", DEVICE)
 
 
 # ==========================================================
-# LOAD MODELS ONCE
+# MODEL LOADER
 # ==========================================================
+
+def load_model(model_name):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    model.to(DEVICE)
+    model.eval()
+    return tokenizer, model
+
+
+# Cardiff models
+tokenizer_irony, model_irony = load_model("cardiffnlp/twitter-roberta-base-irony")
+tokenizer_offensive, model_offensive = load_model("cardiffnlp/twitter-roberta-base-offensive")
+tokenizer_emoji, model_emoji = load_model("cardiffnlp/twitter-roberta-base-emoji")
+tokenizer_topic, model_topic = load_model("cardiffnlp/tweet-topic-21-multi")
+tokenizer_topic_single, model_topic_single = load_model("cardiffnlp/tweet-topic-21-single")
+
+# 🔥 Load pysentimiento ONLY to extract raw model + tokenizer
+emotion_analyzer = create_analyzer(task="emotion", lang="en", device=DEVICE)
+hate_speech_analyzer = create_analyzer(task="hate_speech", lang="en", device=DEVICE)
+
+tokenizer_emotion = emotion_analyzer.tokenizer
+model_emotion = emotion_analyzer.model
+
+tokenizer_hate = hate_speech_analyzer.tokenizer
+model_hate = hate_speech_analyzer.model
+
+model_emotion.eval()
+model_hate.eval()
+
+class_mapping = list(model_topic.config.id2label.values())
+class_mapping_single = list(model_topic_single.config.id2label.values())
+
+emotion_labels = ["anger", "joy", "fear", "disgust", "surprise", "sadness", "others"]
+hate_labels = ["hateful", "aggressive", "targeted"]
 
 sia = SentimentIntensityAnalyzer()
-
-emotion_analyzer = create_analyzer(task="emotion", lang="en")
-hate_speech_analyzer = create_analyzer(task="hate_speech", lang="en")
-
-MODEL_IRONY = "cardiffnlp/twitter-roberta-base-irony"
-MODEL_OFFENSIVE = "cardiffnlp/twitter-roberta-base-offensive"
-MODEL_EMOJI = "cardiffnlp/twitter-roberta-base-emoji"
-MODEL_TOPIC_MULTI = "cardiffnlp/tweet-topic-21-multi"
-MODEL_TOPIC_SINGLE = "cardiffnlp/tweet-topic-21-single"
-
-tokenizer_irony = AutoTokenizer.from_pretrained(MODEL_IRONY)
-model_irony = AutoModelForSequenceClassification.from_pretrained(MODEL_IRONY)
-
-tokenizer_offensive = AutoTokenizer.from_pretrained(MODEL_OFFENSIVE)
-model_offensive = AutoModelForSequenceClassification.from_pretrained(MODEL_OFFENSIVE)
-
-tokenizer_emoji = AutoTokenizer.from_pretrained(MODEL_EMOJI)
-model_emoji = AutoModelForSequenceClassification.from_pretrained(MODEL_EMOJI)
-
-tokenizer_topic = AutoTokenizer.from_pretrained(MODEL_TOPIC_MULTI)
-model_topic = AutoModelForSequenceClassification.from_pretrained(MODEL_TOPIC_MULTI)
-class_mapping = model_topic.config.id2label
-
-tokenizer_topic_single = AutoTokenizer.from_pretrained(MODEL_TOPIC_SINGLE)
-model_topic_single = AutoModelForSequenceClassification.from_pretrained(MODEL_TOPIC_SINGLE)
-class_mapping_single = model_topic_single.config.id2label
-
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-for m in [model_irony, model_offensive, model_emoji, model_topic, model_topic_single]:
-    m.to(DEVICE)
-    m.eval()
 
 
 # ==========================================================
@@ -68,36 +89,45 @@ def berkem_preprocess(text):
     return text.lower().strip()
 
 def roberta_preprocess(text):
-    new_text = []
-    for t in text.split(" "):
-        t = "@user" if t.startswith("@") else t
-        t = "http" if t.startswith("http") else t
-        new_text.append(t)
-    return " ".join(new_text)
-
-def read_tokenized(text):
-    return "\n\n".join(
-        "\n".join(
-            " ".join(token.value for token in sentence)
-            for sentence in paragraph
-        )
-        for paragraph in segmenter.analyze(text)
+    return " ".join(
+        "@user" if t.startswith("@") else
+        "http" if t.startswith("http") else t
+        for t in text.split()
     )
 
 
 # ==========================================================
-# TRANSFORMER BATCH FORWARD
+# FAST BATCH FORWARD
 # ==========================================================
 
 @torch.no_grad()
-def batch_forward(tokenizer, model, texts, batch_size=64):
+def batch_forward(tokenizer, model, texts, batch_size=32, activation="softmax"):
+
     outputs = []
+
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i+batch_size]
-        enc = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=256)
+
+        enc = tokenizer(
+            batch,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=128
+        )
+
         enc = {k: v.to(DEVICE) for k, v in enc.items()}
-        logits = model(**enc).logits.detach().cpu().numpy()
-        outputs.append(logits)
+        logits = model(**enc).logits
+
+        if activation == "softmax":
+            probs = torch.softmax(logits, dim=1)
+        elif activation == "sigmoid":
+            probs = torch.sigmoid(logits)
+        else:
+            probs = logits
+
+        outputs.append(probs.cpu().numpy())
+
     return np.vstack(outputs)
 
 
@@ -105,80 +135,46 @@ def batch_forward(tokenizer, model, texts, batch_size=64):
 # MAIN FEATURE FUNCTION
 # ==========================================================
 
-def add_all_m_features(df, batch_size=64):
+def add_all_m_features(df, batch_size=32):
 
     df = df.copy()
     df["text"] = df["text"].fillna("").astype(str)
 
     unique_texts = df["text"].unique().tolist()
+    #print("Unique texts:", len(unique_texts))
 
-    text_len = {}
-    word_count = {}
-    sentiment_scores = {}
-    subjectivity_score = {}
-    polarity_score = {}
-    emo_results = {}
-    hs_results = {}
-    irony_scores = {}
-    offensive_scores = {}
-    emoji_top = {}
-    readability_results = {}
-    topic_scores = {}
-    topic_pred = {}
-    topic_scores_single = {}
-    topic_pred_single = {}
+    clean_map = {t: berkem_preprocess(t) for t in unique_texts}
+    rob_map = {t: roberta_preprocess(t) for t in unique_texts}
 
-    # ---------------------------
-    # Cheap per-text features
-    # ---------------------------
-    for t in unique_texts:
-        clean = berkem_preprocess(t)
-        text_len[t] = len(clean)
-        word_count[t] = len(clean.split())
-        sentiment_scores[t] = sia.polarity_scores(clean)
-        tb = TextBlob(t).sentiment
-        polarity_score[t] = tb.polarity
-        subjectivity_score[t] = tb.subjectivity
-        try:
-            readability_results[t] = readability.getmeasures(read_tokenized(clean), lang="en")
-        except:
-            readability_results[t] = None
+    # Basic features
+    text_len = {t: len(clean_map[t]) for t in unique_texts}
+    word_count = {t: len(clean_map[t].split()) for t in unique_texts}
+    sentiment_scores = {t: sia.polarity_scores(clean_map[t]) for t in unique_texts}
+    tb_scores = {t: TextBlob(t).sentiment for t in unique_texts}
 
-    # ---------------------------
-    # Emotion + Hate
-    # ---------------------------
-    prep = [preprocess_tweet(t) for t in unique_texts]
-    emo_preds = emotion_analyzer.predict(prep)
-    hs_preds = hate_speech_analyzer.predict(prep)
+    rob_texts = [rob_map[t] for t in unique_texts]
 
-    for t, e, h in zip(unique_texts, emo_preds, hs_preds):
-        emo_results[t] = e
-        hs_results[t] = h
+    # Transformer passes
+  #  status("Running emotion model...")
+    emotion_probs = batch_forward(tokenizer_emotion, model_emotion, rob_texts, batch_size)
 
-    # ---------------------------
-    # RoBERTa models
-    # ---------------------------
-    rob_texts = [roberta_preprocess(t) for t in unique_texts]
+   # status("Running hate model...")
+    hate_probs = batch_forward(tokenizer_hate, model_hate, rob_texts, batch_size)
+   # status("Running irony model...")
+    irony_probs = batch_forward(tokenizer_irony, model_irony, rob_texts, batch_size)
+   # status("Running offensive model...")
+    offensive_probs = batch_forward(tokenizer_offensive, model_offensive, rob_texts, batch_size)
+   # status("Running emoji model...")
+    emoji_probs = batch_forward(tokenizer_emoji, model_emoji, rob_texts, batch_size)
+   # status("Running topic model...")
+    topic_probs = batch_forward(tokenizer_topic, model_topic, rob_texts, batch_size, activation="sigmoid")
+    #status("Running topic-singel model...")
+    topic_single_probs = batch_forward(tokenizer_topic_single, model_topic_single, rob_texts, batch_size, activation="sigmoid")
 
-    irony_probs = softmax(batch_forward(tokenizer_irony, model_irony, rob_texts, batch_size), axis=1)
-    offensive_probs = softmax(batch_forward(tokenizer_offensive, model_offensive, rob_texts, batch_size), axis=1)
-    emoji_probs = softmax(batch_forward(tokenizer_emoji, model_emoji, rob_texts, batch_size), axis=1)
-    topic_probs = expit(batch_forward(tokenizer_topic, model_topic, rob_texts, batch_size))
-    topic_single_probs = expit(batch_forward(tokenizer_topic_single, model_topic_single, rob_texts, batch_size))
+    mapping_index = {t: i for i, t in enumerate(unique_texts)}
+    def idx(x): return mapping_index[x]
 
-    for i, t in enumerate(unique_texts):
-        irony_scores[t] = irony_probs[i]
-        offensive_scores[t] = offensive_probs[i]
-        emoji_top[t] = int(np.argmax(emoji_probs[i]))
-        topic_scores[t] = topic_probs[i]
-        topic_pred[t] = (topic_probs[i] >= 0.5).astype(int)
-        topic_scores_single[t] = topic_single_probs[i]
-        topic_pred_single[t] = (topic_single_probs[i] >= 0.5).astype(int)
-
-    # ==========================================================
-    # Attach to DataFrame (exact columns from your notebook)
-    # ==========================================================
-
+    # Attach features
     df["text_len"] = df["text"].map(text_len)
     df["word_count"] = df["text"].map(word_count)
 
@@ -187,39 +183,36 @@ def add_all_m_features(df, batch_size=64):
     df["pos"] = df["text"].map(lambda x: sentiment_scores[x]["pos"])
     df["compound"] = df["text"].map(lambda x: sentiment_scores[x]["compound"])
 
-    df["subjectivity"] = df["text"].map(subjectivity_score)
-    df["polarity"] = df["text"].map(polarity_score)
+    df["subjectivity"] = df["text"].map(lambda x: tb_scores[x].subjectivity)
+    df["polarity"] = df["text"].map(lambda x: tb_scores[x].polarity)
 
-    df["emo_overall"] = df["text"].map(lambda x: emo_results[x].output)
-    df["emo_anger"] = df["text"].map(lambda x: emo_results[x].probas.get("anger", 0))
-    df["emo_joy"] = df["text"].map(lambda x: emo_results[x].probas.get("joy", 0))
-    df["emo_fear"] = df["text"].map(lambda x: emo_results[x].probas.get("fear", 0))
-    df["emo_disgust"] = df["text"].map(lambda x: emo_results[x].probas.get("disgust", 0))
-    df["emo_surprise"] = df["text"].map(lambda x: emo_results[x].probas.get("surprise", 0))
-    df["emo_sadness"] = df["text"].map(lambda x: emo_results[x].probas.get("sadness", 0))
-    df["emo_others"] = df["text"].map(lambda x: emo_results[x].probas.get("others", 0))
+    # Emotion
+    df["emo_overall"] = df["text"].map(lambda x: emotion_labels[int(np.argmax(emotion_probs[idx(x)]))])
+    for i, lab in enumerate(emotion_labels):
+        df[f"emo_{lab}"] = df["text"].map(lambda x: emotion_probs[idx(x)][i])
 
-    df["hs_aggressive"] = df["text"].map(lambda x: hs_results[x].probas.get("aggressive", 0))
-    df["hs_hateful"] = df["text"].map(lambda x: hs_results[x].probas.get("hateful", 0))
-    df["hs_targeted"] = df["text"].map(lambda x: hs_results[x].probas.get("targeted", 0))
-    df["hs_count"] = df["text"].map(lambda x: len(hs_results[x].output))
+    # Hate
+    for i, lab in enumerate(hate_labels):
+        df[f"hs_{lab}"] = df["text"].map(lambda x: hate_probs[idx(x)][i])
+    df["hs_count"] = df["text"].map(lambda x: int(np.sum(hate_probs[idx(x)] > 0.5)))
 
-    df["irony"] = df["text"].map(lambda x: 0 if irony_scores[x][1] < 0.5 else 1)
-    df["offensive"] = df["text"].map(lambda x: offensive_scores[x][1])
-    df["emoji"] = df["text"].map(emoji_top)
+    # Irony / Offensive / Emoji
+    df["irony"] = df["text"].map(lambda x: int(irony_probs[idx(x)][1] >= 0.5))
+    df["offensive"] = df["text"].map(lambda x: offensive_probs[idx(x)][1])
+    df["emoji"] = df["text"].map(lambda x: int(np.argmax(emoji_probs[idx(x)])))
 
-    labels_multi = [class_mapping[i] for i in range(len(class_mapping))]
-    for i, lab in enumerate(labels_multi):
-        df[lab] = df["text"].map(lambda x: topic_scores[x][i])
+    # Topics multi
+    for i, lab in enumerate(class_mapping):
+        df[lab] = df["text"].map(lambda x: topic_probs[idx(x)][i])
+    df["topic_count"] = df["text"].map(lambda x: int(np.sum(topic_probs[idx(x)] >= 0.5)))
+    df["topic_overall"] = df["text"].map(lambda x: class_mapping[int(np.argmax(topic_probs[idx(x)]))])
 
-    df["topic_count"] = df["text"].map(lambda x: int(np.sum(topic_pred[x])))
-    df["topic_overall"] = df["text"].map(lambda x: labels_multi[int(np.argmax(topic_scores[x]))])
-
-    labels_single = [class_mapping_single[i] for i in range(len(class_mapping_single))]
-    for i, lab in enumerate(labels_single):
-        df["single_" + lab] = df["text"].map(lambda x: topic_scores_single[x][i])
-
-    df["single_topic_count"] = df["text"].map(lambda x: int(np.sum(topic_pred_single[x])))
-    df["single_topic_overall"] = df["text"].map(lambda x: labels_single[int(np.argmax(topic_scores_single[x]))])
+    # Topics single
+    for i, lab in enumerate(class_mapping_single):
+        df["single_" + lab] = df["text"].map(lambda x: topic_single_probs[idx(x)][i])
+    df["single_topic_count"] = df["text"].map(lambda x: int(np.sum(topic_single_probs[idx(x)] >= 0.5)))
+    df["single_topic_overall"] = df["text"].map(
+        lambda x: class_mapping_single[int(np.argmax(topic_single_probs[idx(x)]))]
+    )
 
     return df

@@ -42,3 +42,50 @@
 | `S_hist_repost_pct`              | Fraction of S’s history that are reposts |
 | `S_hist_avg_gap_days`            | Average days between S’s activities |
 | `S_hist_avg_engagement`          | Average engagement across S’s history |
+
+
+
+
+| Column                          | Meaning |
+|----------------------------------|----------------------------------------------|
+| `A_id`                          | Candidate reposter user ID (DID) |
+| `S_id`                          | Source author user ID (DID) |
+| `P_id`                          | Post ID |
+| `hashtag`                       | Hashtag associated with the post |
+| `label`                         | 1 if A reposted P, 0 otherwise |
+
+| `U-P_R_FollowS`                 | 1 if A follows S, else 0 |
+| `U-HA_RS_Mention`               | Number of times A mentioned S before P |
+| `U-HA_RS_MentionPer`            | Fraction of A’s past posts mentioning S |
+| `U-HA_SR_Mention`               | Number of times S mentioned A before P |
+| `U-HA_SR_MentionPer`            | Fraction of S’s past posts mentioning A |
+| `U-HA-RS_reposts`               | Number of times A reposted S before P |
+| `U-P-SR-followersDiff`          | Follower count difference (S − A) |
+| `U-P_R_activeBeforeP`           | 1 if A account existed before P |
+
+| `U-P_R_AccountAge`              | Account age of A (days) |
+| `U-P_R_FollowerNum`             | Number of followers A has |
+| `U-P_R_FolloweeNum`             | Number of accounts A follows |
+| `U-P_R_TweetNum`                | Total posts created by A |
+| `U-P_R_SpreadActivity`          | A’s total posts normalized by max posts |
+| `U-P_R_FollowerNumDay`          | Followers gained per day (A) |
+| `U-P_R_FolloweeNumDay`          | Followees added per day (A) |
+| `U-P_R_TweetNumDay`             | Posting frequency (A) |
+| `U-P_R_ProfileUrl`              | 1 if A’s profile contains a URL |
+| `U-HA_R_RetweetPercent`         | Fraction of A’s history that are reposts |
+| `U-HA_R_AverageInterval`        | Average days between A’s activities |
+| `U-HA_R_RetweetedRate`          | Average engagement across A’s history (aggregated retweet/quote/reply/like) |
+
+| `U-P_S_AccountAge`              | Account age of S (days) |
+| `U-P_S_FollowerNum`             | Number of followers S has |
+| `U-P_S_FolloweeNum`             | Number of accounts S follows |
+| `U-P_S_TweetNum`                | Total posts created by S |
+| `U-P_S_SpreadActivity`          | S’s total posts normalized by max posts |
+| `U-P_S_FollowerNumDay`          | Followers gained per day (S) |
+| `U-P_S_FolloweeNumDay`          | Followees added per day (S) |
+| `U-P_S_TweetNumDay`             | Posting frequency (S) |
+| `U-P_S_ProfileUrl`              | 1 if S’s profile contains a URL |
+| `U-HA_S_RetweetPercent`         | Fraction of S’s history that are reposts |
+| `U-HA_S_AverageInterval`        | Average days between S’s activities |
+| `U-HA_S_RetweetedRate`          | Average engagement across S’s history (aggregated retweet/quote/reply/like) |
+
