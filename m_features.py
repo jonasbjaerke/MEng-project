@@ -55,7 +55,7 @@ tokenizer_emoji, model_emoji = load_model("cardiffnlp/twitter-roberta-base-emoji
 tokenizer_topic, model_topic = load_model("cardiffnlp/tweet-topic-21-multi")
 tokenizer_topic_single, model_topic_single = load_model("cardiffnlp/tweet-topic-21-single")
 
-# 🔥 Load pysentimiento ONLY to extract raw model + tokenizer
+# Load pysentimiento ONLY to extract raw model + tokenizer
 emotion_analyzer = create_analyzer(task="emotion", lang="en", device=DEVICE)
 hate_speech_analyzer = create_analyzer(task="hate_speech", lang="en", device=DEVICE)
 
