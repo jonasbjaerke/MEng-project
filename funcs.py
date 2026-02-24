@@ -14,10 +14,7 @@ def get_json(name):
         return json.load(f)
 
 
-
-
-
-def plot_cdf_by_label(df, column, x_max=None, title=None):
+def plot_cdf_wrt_label(df, column, x_max=None, title=None):
     """
     Plots the empirical CDF of a column
     split by label (0 vs 1).
