@@ -89,3 +89,23 @@
 | `U-HA_S_AverageInterval`        | Average days between S’s activities |
 | `U-HA_S_RetweetedRate`          | Average engagement across S’s history (aggregated retweet/quote/reply/like) |
 
+
+
+
+
+['A_id', 'S_id', 'P_id', 'hashtag', 'label', 'U-P_R_FollowS',
+       'U-HA_R_MentionS', 'U-HA_R_MentionPerS', 'U-HA_S_MentionR',
+       'U-HA_S_MentionPerR', 'U-HA-R_repostsS', 'U-P_SR_followersDiff',
+       'U-P_R_activeBeforeP', 'U-P_R_AccountAge', 'U-P_R_FollowerNum',
+       'U-P_R_FolloweeNum', 'U-P_R_TweetNum', 'U-P_R_SpreadActivity',
+       'U-P_R_FollowerNumDay', 'U-P_R_FolloweeNumDay', 'U-P_R_TweetNumDay',
+       'U-P_R_ProfileUrl', 'U-P_S_AccountAge', 'U-P_S_FollowerNum',
+       'U-P_S_FolloweeNum', 'U-P_S_TweetNum', 'U-P_S_SpreadActivity',
+       'U-P_S_FollowerNumDay', 'U-P_S_FolloweeNumDay', 'U-P_S_TweetNumDay',
+       'U-P_S_ProfileUrl', 'U-HA_R_RetweetPercent', 'U-HA_R_AverageInterval',
+       'U-HA_R_RetweetedRate', 'U-HA_R_QuotedRate', 'U-HA_R_RepliedRate',
+       'U-HA_R_LikedRate', 'U-HA_R_TweetNum', 'U-HA_S_RetweetPercent',
+       'U-HA_S_AverageInterval', 'U-HA_S_RetweetedRate', 'U-HA_S_QuotedRate',
+       'U-HA_S_RepliedRate', 'U-HA_S_LikedRate', 'U-HA_S_TweetNum']
+
+
