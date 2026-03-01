@@ -135,7 +135,7 @@ def batch_forward(tokenizer, model, texts, batch_size=32, activation="softmax"):
 # MAIN FEATURE FUNCTION
 # ==========================================================
 
-def add_all_m_features(df, batch_size=32):
+def add_all_m_features(df, batch_size=64):
 
     df = df.copy()
     df["text"] = df["text"].fillna("").astype(str)
