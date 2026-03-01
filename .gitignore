@@ -16,6 +16,8 @@ plots/
 
 report
 
+data/
+
 __pycache__
 
 message_features
