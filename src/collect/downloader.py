@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class HashtagDownloader:
 
@@ -14,10 +15,10 @@ class HashtagDownloader:
         since_dt,
         until_dt,
         max_posts=None,
-        out_dir="data/raw/hashtags"
+        out_dir= PROJECT_ROOT / "data" / "raw" / "hashtags"
     ):
-        Path(out_dir).mkdir(parents=True, exist_ok=True)
-        outfile = Path(out_dir) / f"{hashtag}.jsonl"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        outfile = out_dir / f"{hashtag}.jsonl"
 
         total = 0
         current_until = until_dt

@@ -1,14 +1,15 @@
 from pathlib import Path
 from typing import Type
 
-from src.utils import get_json, save_csv
-from src.features.dataset_builder import DatasetBuilder
+from ..utils import get_json, save_csv
+from .dataset_builder import DatasetBuilder
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-RAW_BASE = Path("data/raw")
+RAW_BASE = PROJECT_ROOT / "data" / "raw"
 POSTS_DIR = RAW_BASE / "posts"
 USERS_DIR = RAW_BASE / "users"
-PROCESSED_DIR = Path("data/processed")
+PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 
 def build_dataset(

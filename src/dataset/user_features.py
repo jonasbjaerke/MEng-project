@@ -1,6 +1,6 @@
 
 from datetime import datetime, timezone
-from utils import parse_dt
+from ..utils import parse_dt
 
 
 class UserFeatureExtractor:

@@ -7,10 +7,10 @@ import asyncio
 from .api import BlueskyAPI
 from .downloader import HashtagDownloader
 from .users import UserDataCollector
-from utils import write_json
-from .text import build_text_dict
+from ..utils import write_json
 import json
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class DataPipeline:
     """
@@ -24,7 +24,7 @@ class DataPipeline:
         until_dt,
         max_posts_per_hashtag,
         min_posts_per_hashtag,
-        base_data_dir="data"
+        base_data_dir= PROJECT_ROOT / "data"
     ):
         self.hashtags = hashtags
         self.since_dt = since_dt
@@ -32,7 +32,7 @@ class DataPipeline:
         self.max_posts_per_hashtag = max_posts_per_hashtag
         self.min_posts_per_hashtag = min_posts_per_hashtag
 
-        self.base_dir = Path(base_data_dir)
+        self.base_dir = base_data_dir
         self.raw_dir = self.base_dir / "raw"
         self.hashtag_dir = self.raw_dir / "hashtags"
         self.users_dir = self.raw_dir / "users"
@@ -103,11 +103,6 @@ class DataPipeline:
 
         return users
     
-
-    #Stage 4: Store message/text for feature analysis
-    def save_text_dict(self, posts, users):
-        text_dict = build_text_dict(posts, users)
-        write_json(text_dict, self.texts_dir / "text_dict.json")
     
     # -----------------------------
     # Run entire pipeline
@@ -130,6 +125,5 @@ class DataPipeline:
         posts_path = self.posts_dir / "posts.json"
         write_json(posts, posts_path)
 
-        self.save_text_dict(posts,users)
 
         print("Pipeline complete.")
