@@ -1,7 +1,7 @@
 
 
 from .dataset_builder import DatasetBuilder
-from .user_features import UserFeatureExtractor
+from .user_feature_extractor import UserFeatureExtractor
 
 
 class UserDatasetBuilder(DatasetBuilder):

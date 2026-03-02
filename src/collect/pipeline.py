@@ -122,8 +122,9 @@ class DataPipeline:
         # Step 4: save users and posts
         users_path = self.users_dir / "users.json"
         write_json(users, users_path)
+
         posts_path = self.posts_dir / "posts.json"
         write_json(posts, posts_path)
 
 
-        print("Pipeline complete.")
+        print("Collecting data complete.")

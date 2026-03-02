@@ -1,4 +1,4 @@
-from .user_features import UserFeatureExtractor
+from .user_feature_extractor import UserFeatureExtractor
 
 
 __all__ = [
