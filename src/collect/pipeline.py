@@ -57,6 +57,7 @@ class DataPipeline:
                 since_dt=self.since_dt,
                 until_dt=self.until_dt,
                 max_posts=self.max_posts_per_hashtag,
+                min_posts=self.min_posts_per_hashtag,
                 out_dir=self.hashtag_dir
             )
 

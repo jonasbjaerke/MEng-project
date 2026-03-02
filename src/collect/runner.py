@@ -6,21 +6,21 @@ from .pipeline import DataPipeline
 
 if __name__ == "__main__":
 
-    # -----------------------------
-    # Configuration
-    # -----------------------------
-
     hashtags = [
-        "politics",
-        "sports",
-        "technology",
+        "Pokemon",
+        "TheTraitors",
+        "OpenAI",
+        "Booksky",
+        "Anime",
+        "Iran",
+        "ICE"
     ]
 
-    since_dt = datetime(2024, 1, 1)
-    until_dt = datetime(2024, 12, 31)
+    since_dt = datetime(2026, 1, 15)
+    until_dt = datetime(2026, 3, 2)
 
-    max_posts_per_hashtag = 500
-    min_posts_per_hashtag = 100
+    max_posts_per_hashtag = 100
+    min_posts_per_hashtag = 50
 
     # -----------------------------
     # Run pipeline

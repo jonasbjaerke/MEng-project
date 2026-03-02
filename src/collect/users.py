@@ -25,7 +25,7 @@ class UserDataCollector:
     def __init__(
         self,
         posts: Dict[str, dict],
-        rprp: int = 1,
+        rprp: int = 3,
         reposter_rps: int = 100,
         follow_rps: int = 50,
         history_limit: int = 50,
