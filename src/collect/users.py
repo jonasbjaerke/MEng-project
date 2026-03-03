@@ -4,10 +4,7 @@ import asyncio
 import random
 from datetime import datetime, timezone
 from typing import Dict, Set
-import json
-from pathlib import Path
 from tqdm import tqdm
-import aiolimiter
 
 from .async_client import BlueskyAsyncClient
 
@@ -26,41 +23,45 @@ class UserDataCollector:
         self,
         posts: Dict[str, dict],
         rprp: int = 3,
-        reposter_rps: int = 100,
-        follow_rps: int = 50,
         history_limit: int = 50,
+        rps: int = 100,
+        concurrency: int = 100,
     ):
+        """
+        rps + concurrency fully control performance.
+        Change them here — nowhere else.
+        """
         self.posts = posts
         self.users = {}
         self.rprp = rprp
-        self.reposter_rps = reposter_rps
-        self.follow_rps = follow_rps
         self.history_limit = history_limit
         self.user_dids: Set[str] = set()
+        self.follows = {}
+        self.rps = rps
+        self.concurrency = concurrency
 
     # =====================================================
-    # PUBLIC ENTRYPOINT
+    # ENTRYPOINT
     # =====================================================
 
     async def collect(self):
 
-        async with BlueskyAsyncClient() as client:
+        async with BlueskyAsyncClient(
+            rps=self.rps,
+            concurrency=self.concurrency
+        ) as client:
+
             self.client = client
 
             await self._collect_reposters()
-            followed = await self._collect_follow_relations()
-            await self._collect_profiles_and_history(followed)
+            await self._collect_follow_relations()
+            await self._collect_profiles_and_history()
 
         return self.users
 
     # =====================================================
     # HELPERS
     # =====================================================
-
-    def _parse_dt(self, ts):
-        return datetime.fromisoformat(
-            ts.replace("Z", "+00:00")
-        ).astimezone(timezone.utc)
 
     def _author_dids(self):
         return {
@@ -69,43 +70,54 @@ class UserDataCollector:
             if (did := p.get("author", {}).get("did"))
         }
 
+    def _parse_dt(self, ts):
+        return datetime.fromisoformat(
+            ts.replace("Z", "+00:00")
+        ).astimezone(timezone.utc)
+
     # =====================================================
     # REPOSTERS
     # =====================================================
 
     async def _collect_reposters(self):
 
-        limiter = aiolimiter.AsyncLimiter(self.reposter_rps, 1)
-
         async def fetch(uri):
-            async with limiter:
-                data = await self.client.get(
-                    REPOST_API,
-                    params={"uri": uri, "limit": 100},
-                    headers=HEADERS
-                )
-                if not data:
-                    return []
-                return [u["did"] for u in data.get("repostedBy", [])]
+            data = await self.client.get(
+                REPOST_API,
+                params={"uri": uri, "limit": 100},
+                headers=HEADERS
+            )
+            if not data:
+                return uri, []
+            return uri, [u["did"] for u in data.get("repostedBy", [])]
 
-        uris = [u for u, p in self.posts.items() if p.get("repostCount", 0) > 0]
+        uris = [
+            u for u, p in self.posts.items()
+            if p.get("repostCount", 0) > 0
+        ]
 
-        failed = 0
-        for uri, task in tqdm(
-            zip(uris, asyncio.as_completed([fetch(u) for u in uris])),
-            total=len(uris),
+        tasks = [fetch(u) for u in uris]
+
+        failed=0
+        for task in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
             desc="Fetching reposters",
             unit="post"
         ):
-            reposters = await task
+            uri, reposters = await task
 
             self.posts[uri]["reposted_by"] = reposters
 
             if not reposters:
-                failed += 1
+                failed+=1
                 continue
 
-            sampled = random.sample(reposters, min(len(reposters), self.rprp))
+            sampled = random.sample(
+                reposters,
+                min(len(reposters), self.rprp)
+            )
+
             self.posts[uri]["stored_reposters"] = sampled
             self.user_dids.update(sampled)
 
@@ -123,13 +135,9 @@ class UserDataCollector:
     async def _collect_follow_relations(self):
 
         author_set = self._author_dids()
-        limiter = aiolimiter.AsyncLimiter(self.follow_rps, 1)
-        total = len(self.user_dids)
-        counter = 0
 
         async def fetch(did):
 
-            nonlocal counter
             follows = set()
             cursor = None
             pages = 0
@@ -137,13 +145,18 @@ class UserDataCollector:
 
             while True:
 
-                async with limiter:
-                    data = await self.client.get(
-                        FOLLOW_API,
-                        params={"actor": did, "limit": 100, "cursor": cursor} if cursor
-                        else {"actor": did, "limit": 100},
-                        headers=HEADERS
-                    )
+                data = await self.client.get(
+                    FOLLOW_API,
+                    params={
+                        "actor": did,
+                        "limit": 100,
+                        "cursor": cursor
+                    } if cursor else {
+                        "actor": did,
+                        "limit": 100
+                    },
+                    headers=HEADERS
+                )
 
                 if not data:
                     break
@@ -152,9 +165,8 @@ class UserDataCollector:
 
                 for u in page:
                     if u.get("did") in author_set:
-                        if u["did"] not in follows:
-                            follows.add(u["did"])
-                            hits += 1
+                        follows.add(u["did"])
+                        hits += 1
 
                 pages += 1
                 cursor = data.get("cursor")
@@ -162,48 +174,56 @@ class UserDataCollector:
                 if not cursor:
                     break
 
+                # probabilistic early stop
                 if pages >= 5:
                     density = hits / (pages * 100)
                     if density < 0.02:
                         break
 
-            counter += 1
-            if counter % 100 == 0 or counter == total:
-                print(
-                    f"\rFetching followed authors: "
-                    f"{counter}/{total} "
-                    f"({counter/total:.1%})",
-                    end="",
-                    flush=True
-                )
-
             return did, list(follows)
 
-        results = await asyncio.gather(
-            *[fetch(d) for d in self.user_dids]
-        )
+        tasks = [fetch(d) for d in self.user_dids]
 
-        print()
+        results = []
 
-        return {d: f for d, f in results if f}
+        for task in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="Fetching follows",
+            unit="user"
+        ):
+            results.append(await task)
+
+        self.follows = {
+            did: follows
+            for did, follows in results
+            if follows
+            }
 
     # =====================================================
     # PROFILE + HISTORY
     # =====================================================
 
-    async def _collect_profiles_and_history(self, followed):
+    async def _collect_profiles_and_history(self):
 
         async def process(did):
 
-            profile = await self.client.get(
+            # Fetch profile + history concurrently
+            profile_task = self.client.get(
                 PROFILE_API,
                 params={"actor": did},
                 headers=HEADERS
             )
+
+            history_task = self._fetch_history(did)
+
+            profile, history = await asyncio.gather(
+                profile_task,
+                history_task
+            )
+
             if not profile:
                 return
-
-            history = await self._fetch_history(did)
 
             created = profile.get("createdAt")
             age_days = (
@@ -229,7 +249,7 @@ class UserDataCollector:
                     "account_age_days": age_days,
                 },
                 "history": history,
-                "follows_authors": followed.get(did, []),
+                "follows_authors": self.follows.get(did),
             }
 
         for task in tqdm(
@@ -240,6 +260,7 @@ class UserDataCollector:
         ):
             await task
 
+
     async def _fetch_history(self, did):
 
         history = []
@@ -247,73 +268,109 @@ class UserDataCollector:
 
         while len(history) < self.history_limit:
 
+            params = {
+                "actor": did,
+                "limit": min(100, self.history_limit - len(history))
+            }
+
+            if cursor:
+                params["cursor"] = cursor
+
             data = await self.client.get(
                 FEED_API,
-                params={"actor": did, "limit": min(100, self.history_limit - len(history)), "cursor": cursor}
-                if cursor else
-                {"actor": did, "limit": min(100, self.history_limit - len(history))},
+                params=params,
                 headers=HEADERS
             )
 
             if not data:
                 break
 
-            for item in data.get("feed", []):
+            feed_items = data.get("feed") or []
+            if not feed_items:
+                break
+
+            for item in feed_items:
+
                 post = item.get("post")
                 if not post:
                     continue
 
-                record = post.get("record", {})
-                reason = item.get("reason", {})
+                record = post.get("record") or {}
+                reason = item.get("reason") or {}
+
+                # -----------------------------------------
+                # Activity Type
+                # -----------------------------------------
 
                 if reason.get("$type", "").endswith("reasonRepost"):
                     activity_type = "repost"
-                    parent_post_uri = post["uri"]
-                    parent_author_did = post["author"]["did"]
                     reposted_at = reason.get("indexedAt")
-                elif "reply" not in record:
-                    activity_type = "post"
-                    parent_post_uri = None
-                    parent_author_did = None
+                elif record.get("reply"):
+                    activity_type = "reply"
                     reposted_at = None
                 else:
-                    continue
+                    activity_type = "post"
+                    reposted_at = None
 
-                facets = record.get("facets", [])
-                has_links = any(
-                    f["features"][0]["$type"].endswith("link")
-                    for f in facets if f.get("features")
-                )
+                # -----------------------------------------
+                # Parent info (only for replies)
+                # -----------------------------------------
 
-                embed = record.get("embed", {})
+                parent_post_uri = None
+                parent_author_did = None
+
+                if activity_type == "reply":
+                    reply = record.get("reply") or {}
+                    parent = reply.get("parent") or {}
+
+                    parent_post_uri = parent.get("uri")
+                    parent_author_did = (
+                        (parent.get("author") or {}).get("did")
+                    )
+
+                # -----------------------------------------
+                # Text + link detection
+                # -----------------------------------------
+
+                text = record.get("text") or ""
+                has_links = ("http://" in text) or ("https://" in text)
+
+                # -----------------------------------------
+                # Media detection
+                # -----------------------------------------
+
                 media_type = None
                 media_count = 0
 
-                if embed:
-                    et = embed.get("$type", "")
-                    if et.endswith("images"):
-                        media_type = "image"
-                        media_count = len(embed.get("images", []))
-                    elif et.endswith("video"):
-                        media_type = "video"
-                        media_count = 1
-                    elif et.endswith("external"):
-                        media_type = "external"
-                        media_count = 1
-                    elif et.endswith("recordWithMedia"):
-                        media_type = "mixed"
-                        media_count = 1
+                embed = record.get("embed") or {}
+                embed_type = embed.get("$type", "")
+
+                if "embed.images" in embed_type:
+                    media_type = "image"
+                    media_count = len(embed.get("images") or [])
+
+                elif "embed.video" in embed_type:
+                    media_type = "video"
+                    media_count = 1
+
+                elif "embed.external" in embed_type:
+                    media_type = "external"
+                    media_count = 1
+
+                elif "embed.recordWithMedia" in embed_type:
+                    media_type = "mixed"
+                    media_count = 1
+
 
                 history.append({
                     "activity_type": activity_type,
                     "created_at": record.get("createdAt"),
                     "reposted_at": reposted_at,
-                    "post_uri": post["uri"],
-                    "post_author_did": post["author"]["did"],
+                    "post_uri": post.get("uri"),
+                    "post_author_did": (post.get("author") or {}).get("did"),
                     "parent_post_uri": parent_post_uri,
                     "parent_author_did": parent_author_did,
-                    "text": record.get("text", ""),
-                    "langs": record.get("langs", []),
+                    "text": text,
                     "like_count": post.get("likeCount"),
                     "repost_count": post.get("repostCount"),
                     "reply_count": post.get("replyCount"),
@@ -321,7 +378,6 @@ class UserDataCollector:
                     "has_links": has_links,
                     "media_type": media_type,
                     "media_count": media_count,
-                    "labels": post.get("labels", []),
                 })
 
                 if len(history) >= self.history_limit:
@@ -332,5 +388,3 @@ class UserDataCollector:
                 break
 
         return history
-    
-

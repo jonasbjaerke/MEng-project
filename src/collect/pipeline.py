@@ -99,6 +99,7 @@ class DataPipeline:
     async def build_users(self, posts):
         print("Collecting user data...")
 
+
         collector = UserDataCollector(posts)
         users = await collector.collect()
 
@@ -119,12 +120,11 @@ class DataPipeline:
         # Step 3: build users (async)
         users = asyncio.run(self.build_users(posts))
 
-
         # Step 4: save users and posts
-        users_path = self.users_dir / "users.json"
+        users_path = self.users_dir / "users_new.json"
         write_json(users, users_path)
 
-        posts_path = self.posts_dir / "posts.json"
+        posts_path = self.posts_dir / "posts_new.json"
         write_json(posts, posts_path)
 
 
