@@ -71,7 +71,8 @@ class MessageFeatureExtractor:
         post_ids = [
             h.get("post_uri")
             for h in history
-            if h.get("post_uri") != exclude_post_id
+            if h.get("post_uri") != exclude_post_id 
+            and h.get("parent_post_uri") != exclude_post_id
         ]
 
         post_ids = post_ids[-n:]  # last n

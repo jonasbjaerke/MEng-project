@@ -27,13 +27,14 @@ class UserFeatureExtractor:
 
         hist_len = sum(
             1 for h in history
-            if h.get("post_uri") != exclude_post_id
+            if h.get("post_uri") != exclude_post_id and h.get("parent_post_uri") != exclude_post_id
         )
 
         reposts = sum(
             1 for h in history
-            if h.get("activity_type") == "repost"
-            and h.get("post_uri") != exclude_post_id
+            if h.get("activity_type") == "repost" or h.get("activity_type") == "reply"
+            and h.get("post_uri") != exclude_post_id 
+            and h.get("parent_post_uri") != exclude_post_id
         )
 
         repost_pct = reposts / hist_len if hist_len else 0.0
@@ -59,7 +60,7 @@ class UserFeatureExtractor:
         total_likes = total_reposts = total_replies = total_quotes = post_count = 0
 
         for h in history:
-            if h.get("activity_type") == "post":
+            if h.get("activity_type") == "post" or h.get("activity_type") == "reply":  #only consider likes made by your post or reply as repost is not "your post"
                 total_likes += h.get("like_count", 0)
                 total_reposts += h.get("repost_count", 0)
                 total_replies += h.get("reply_count", 0)
@@ -93,6 +94,7 @@ class UserFeatureExtractor:
             handle in (h.get("text") or "")
             for h in history
             if h.get("post_uri") != exclude_post_id
+            and h.get("parent_post_uri") != exclude_post_id
         )
 
         return count, count / total if total else 0.0
@@ -102,9 +104,10 @@ class UserFeatureExtractor:
         return sum(
             1
             for h in history
-            if h.get("activity_type") == "repost"
-            and h.get("post_author_did") == author_did
+            if (h.get("activity_type") == "repost" or h.get("activity_type") == "reply")
+            and (h.get("post_author_did") == author_did or h.get("parent_author_did") == author_did)
             and h.get("post_uri") != exclude_post_id
+            and h.get("parent_post_uri") != exclude_post_id
         )
 
     # =====================================================

@@ -21,11 +21,11 @@ FEATURE_REGISTRY = {
 }
 
 
-def build_dataset(
+def new_dataset(
     builder_cls: Type[DatasetBuilder],   
     neg_per_pos: int = 1,
-    posts_filename: str = "posts_mini.json",
-    users_filename: str = "userdata_mini.json",
+    posts_filename: str = "posts.json",
+    users_filename: str = "users.json",
     output_filename: str = "dataset.csv",
 ):
     """
@@ -75,15 +75,15 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--neg_per_pos", type=int, default=1)
-    parser.add_argument("--posts", type=str, default="posts_mini.json")
-    parser.add_argument("--users", type=str, default="userdata_mini.json")
+    parser.add_argument("--posts", type=str, default="posts.json")
+    parser.add_argument("--users", type=str, default="users.json")
     parser.add_argument("--output", type=str, default="dataset.csv")
 
     args = parser.parse_args()
 
     builder_cls = FEATURE_REGISTRY[args.builder]
 
-    build_dataset(
+    new_dataset(
         builder_cls=builder_cls,
         neg_per_pos=args.neg_per_pos,
         posts_filename=args.posts,
