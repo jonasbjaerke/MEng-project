@@ -23,10 +23,10 @@ FEATURE_REGISTRY = {
 
 def new_dataset(
     builder_cls: Type[DatasetBuilder],   
-    neg_per_pos: int = 1,
-    posts_filename: str = "posts.json",
-    users_filename: str = "users.json",
-    output_filename: str = "dataset.csv",
+    neg_per_pos: int,
+    posts_filename: str,
+    users_filename: str,
+    output_filename: str,
 ):
     """
     Build ML dataset using a specific DatasetBuilder.
@@ -75,8 +75,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--neg_per_pos", type=int, default=1)
-    parser.add_argument("--posts", type=str, default="posts.json")
-    parser.add_argument("--users", type=str, default="users.json")
+    parser.add_argument("--posts", type=str, default="postsFinal.json")
+    parser.add_argument("--users", type=str, default="usersFinal.json")
     parser.add_argument("--output", type=str, default="dataset.csv")
 
     args = parser.parse_args()

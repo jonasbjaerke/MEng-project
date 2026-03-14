@@ -14,13 +14,17 @@ class RepostPredictor:
         - Out-of-distribution evaluation
     """
 
-    def __init__(self, model_builder, id_cols=None):
+    def __init__(self, model_builder):
         """
         model_builder: function(random_state=...) -> sklearn model
         id_cols: columns to drop before training
         """
+        
         self.model_builder = model_builder
-        self.id_cols = id_cols or ["A_id", "S_id", "P_id"]#, "hashtag"]
+        self.id_cols = ["A_id", "S_id", "P_id"]
+
+        self._feature_gains = None
+        self._feature_names = None
 
     # --------------------------------------------------
     # Data Preparation
@@ -53,6 +57,7 @@ class RepostPredictor:
     def evaluate_mixed(self, df, n_runs=3):
         X, y = self._prepare(df)
         scores = []
+        gains = []
 
         for i in range(n_runs):
             X_train, X_test, y_train, y_test = train_test_split(
@@ -68,6 +73,14 @@ class RepostPredictor:
 
             y_pred = model.predict(X_test)
             scores.append(f1_score(y_test, y_pred))
+
+        if hasattr(model, "feature_importances_"):
+            gains.append(model.feature_importances_)
+
+        # store gains
+        if gains:
+            self._feature_gains = np.mean(gains, axis=0)
+            self._feature_names = list(X.columns)
 
         return {
             "f1_mean": np.mean(scores),
@@ -143,3 +156,17 @@ class RepostPredictor:
             }
 
         return results
+    
+    def get_feature_gains(self):
+
+        if self._feature_gains is None:
+            raise ValueError("Run evaluate_mixed() first to compute gains.")
+
+        gain_df = pd.DataFrame({
+            "feature": self._feature_names,
+            "gain": self._feature_gains
+        })
+
+        gain_df = gain_df.sort_values("gain", ascending=False)
+
+        return gain_df
