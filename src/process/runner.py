@@ -8,8 +8,8 @@ from ..utils import get_json
 def run():
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-    posts_path = PROJECT_ROOT / "data" / "raw" / "posts" / "posts_mini.json"
-    users_path = PROJECT_ROOT / "data" / "raw" / "users" / "userdata_mini.json"
+    posts_path = PROJECT_ROOT / "data" / "raw" / "posts" / "postsFinal.json"
+    users_path = PROJECT_ROOT / "data" / "raw" / "users" / "usersFinal.json"
 
     posts = get_json(posts_path)
     users = get_json(users_path)

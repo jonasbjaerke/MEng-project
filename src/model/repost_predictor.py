@@ -31,20 +31,16 @@ class RepostPredictor:
     # --------------------------------------------------
 
     def _prepare(self, df):
-        X = df.drop(columns=self.id_cols + ["label"])
-        y = df["label"]
+        X = df.drop(columns=self.id_cols + ["label"]).copy()
+        y = df["label"].copy()
 
-        #  Handle categorical columns (object OR category)
+        # Handle categorical columns
         cat_cols = X.select_dtypes(include=["object", "category"]).columns
-
         for col in cat_cols:
-            X[col] = X[col].astype(str)        # force consistent type
-            X[col] = X[col].fillna("missing") # fill BEFORE converting
-            X[col] = X[col].astype("category")
+            X[col] = X[col].fillna("missing").astype(str).astype("category")
 
-        # Handle numeric columns ONLY
-        num_cols = X.select_dtypes(include=["int64", "float64", "bool"]).columns
-
+        # Handle numeric columns
+        num_cols = X.select_dtypes(include=["number", "bool"]).columns
         for col in num_cols:
             X[col] = X[col].fillna(0)
 

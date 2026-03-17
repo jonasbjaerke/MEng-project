@@ -4,7 +4,7 @@ import pandas as pd
 from .repost_predictor import RepostPredictor
 from .xgboost import build_xgboost
 
-df = pd.read_csv("data/processed/datasets/datasetUsers5.csv")
+df = pd.read_csv("data/processed/datasets/dataset.csv")
 
 predictor = RepostPredictor(build_xgboost)
 
@@ -16,7 +16,7 @@ print(predictor.evaluate_in_distribution(df))
 
 print("\n")
 print("Out-of-Distribution:")
-print(predictor.evaluate_out_of_distribution(df))
+#print(predictor.evaluate_out_of_distribution(df))
 
 print("\n")
 print("Mixed:")

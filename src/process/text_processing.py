@@ -1,5 +1,3 @@
-
-
 import pandas as pd
 import gc
 import torch
@@ -47,37 +45,37 @@ class TextFeaturePipeline:
 
         with self.temp_file.open("w", encoding="utf-8") as f:
 
-            # From user history
-            for user in users.values():
-                for activity in user.get("history", []):
-                    uri = activity.get("post_uri")
-                    text = activity.get("text")
+            # # From user history
+            # for user in users.values():
+            #     for activity in user.get("history", []):
+            #         uri = activity.get("post_uri")
+            #         text = activity.get("text")
 
-                    if uri and text and uri not in seen:
-                        json.dump({"post_uri": uri, "text": text}, f)
-                        f.write("\n")
-                        seen.add(uri)
+            #         if uri and text and uri not in seen:
+            #             json.dump({"post_uri": uri, "text": text}, f)
+            #             f.write("\n")
+            #             seen.add(uri)
 
             # From posts
             for uri, post in posts.items():
                 text = post.get("record", {}).get("text")
 
                 if uri and text and uri not in seen:
+                    text = "" if text is None else str(text)
                     json.dump({"post_uri": uri, "text": text}, f)
                     f.write("\n")
                     seen.add(uri)
+
 
     # --------------------------------------------------
     # Step 2: Compute feature parquet chunks
     # --------------------------------------------------
 
-
     def run_feature_extraction(
-            self,
-            chunk_size: int = 10000,
-            batch_size: int = 128,
-        ):
-
+        self,
+        chunk_size: int = 10000,
+        batch_size: int = 128,
+    ):
         if not self.temp_file.exists():
             raise FileNotFoundError(f"Missing input file: {self.temp_file}")
 
@@ -86,7 +84,7 @@ class TextFeaturePipeline:
         total_lines = sum(
             1 for _ in self.temp_file.open("r", encoding="utf-8")
         )
-        total_chunks = (total_lines // chunk_size) + 1
+        total_chunks = (total_lines + chunk_size - 1) // chunk_size
 
         print(f"Total posts: {total_lines}, Total chunks: {total_chunks}")
 
@@ -96,11 +94,9 @@ class TextFeaturePipeline:
             chunksize=chunk_size,
         )
 
-        # 👇 Add tqdm here
         for i, chunk in enumerate(
             tqdm(reader, total=total_chunks, desc="Processing chunks")
         ):
-
             enriched = add_all_m_features(
                 chunk,
                 batch_size=batch_size
@@ -116,6 +112,7 @@ class TextFeaturePipeline:
                 torch.mps.empty_cache()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+
     # --------------------------------------------------
     # Step 3: Merge parquet chunks into final JSON
     # --------------------------------------------------
@@ -158,13 +155,13 @@ class TextFeaturePipeline:
                     json.dump(row_dict, f, ensure_ascii=False)
 
                 del df_chunk
+                gc.collect()
 
             f.write("\n}")
 
         print(f"Feature dict written to {self.final_json}")
 
-
-        # --------------------------------------------------
+    # --------------------------------------------------
     # Cleanup
     # --------------------------------------------------
 
@@ -175,8 +172,6 @@ class TextFeaturePipeline:
 
         if self.temp_file.exists():
             self.temp_file.unlink()
-        
-
 
     # --------------------------------------------------
     # Full pipeline

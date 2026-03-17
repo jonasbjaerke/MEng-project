@@ -5,9 +5,9 @@ from .message_feature_extractor import MessageFeatureExtractor
 
 class MessageDatasetBuilder(DatasetBuilder):
 
-    def __init__(self, users, posts):
-        super().__init__(users, posts)
-        self.extractor = MessageFeatureExtractor(users)
+    def __init__(self,users, posts):
+        super().__init__(users,posts)
+        self.extractor = MessageFeatureExtractor()
 
     def build_features(self, A_id, S_id, P_id, post, label):
         return self.extractor.build_features(
