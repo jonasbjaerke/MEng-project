@@ -26,6 +26,13 @@ class DatasetBuilder(ABC):
     def build_features(self, A_id, S_id, P_id, post, label):
         pass
 
+    @abstractmethod
+    def remove_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+        pass
+    
+    def _permission(self,reposters):
+        return True
+    
     def _build_hashtag_caches(self):
         hashtag_users = {}
         hashtag_posts = {}
@@ -43,7 +50,7 @@ class DatasetBuilder(ABC):
             if hashtag not in hashtag_posts:
                 hashtag_posts[hashtag] = []
 
-            if reposters == []: #temp
+            if self._permission(reposters):
                 hashtag_posts[hashtag].append((P_id, post))
 
             if sender:
@@ -222,7 +229,4 @@ class DatasetBuilder(ABC):
 
     #     return pd.DataFrame(rows)
 
-    @abstractmethod
-    def remove_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
-        pass
     

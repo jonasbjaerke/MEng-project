@@ -22,6 +22,7 @@ class RepostPredictor:
         
         self.model_builder = model_builder
         self.id_cols = ["A_id", "S_id", "P_id"]
+        self.extra_cols_to_remove = []
 
         self._feature_gains = None
         self._feature_names = None
@@ -30,8 +31,15 @@ class RepostPredictor:
     # Data Preparation
     # --------------------------------------------------
 
+    def ignore_features(self, features):
+        if isinstance(features, str):
+            features = [features]
+        self.extra_cols_to_remove.extend(features)
+        self.extra_cols_to_remove = list(dict.fromkeys(self.extra_cols_to_remove))
+
     def _prepare(self, df):
-        X = df.drop(columns=self.id_cols + ["label"]).copy()
+        cols_to_drop = self.id_cols + ["label"] + self.extra_cols_to_remove
+        X = df.drop(columns=cols_to_drop).copy()
         y = df["label"].copy()
 
         # Handle categorical columns
