@@ -43,8 +43,8 @@ class DatasetBuilder(ABC):
             if hashtag not in hashtag_posts:
                 hashtag_posts[hashtag] = []
 
-            #if reposters == []: #temp
-            hashtag_posts[hashtag].append((P_id, post))
+            if reposters == []: #temp
+                hashtag_posts[hashtag].append((P_id, post))
 
             if sender:
                 hashtag_users[hashtag].add(sender)
@@ -222,6 +222,7 @@ class DatasetBuilder(ABC):
 
     #     return pd.DataFrame(rows)
 
-    @staticmethod
-    def remove_pair_duplicates(df: pd.DataFrame) -> pd.DataFrame:
-        return df.drop_duplicates(subset=["S_id", "A_id"])
+    @abstractmethod
+    def remove_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+        pass
+    

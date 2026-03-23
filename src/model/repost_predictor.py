@@ -31,7 +31,7 @@ class RepostPredictor:
     # --------------------------------------------------
 
     def _prepare(self, df):
-        X = df.drop(columns=self.id_cols + ["label","U-P_R_FollowS","U-HA_S_RetweetedRate","U-HA-R_repostsS","U-HA_S_LikedRate"]).copy()
+        X = df.drop(columns=self.id_cols + ["label"]).copy()
         y = df["label"].copy()
 
         # Handle categorical columns

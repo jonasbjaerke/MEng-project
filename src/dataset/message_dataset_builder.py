@@ -10,10 +10,13 @@ class MessageDatasetBuilder(DatasetBuilder):
         self.extractor = MessageFeatureExtractor()
 
     def build_features(self, A_id, S_id, P_id, post, label):
-        return self.extractor.build_features(
+        return self.extractor.calc_features(
             A_id=A_id,
             S_id=S_id,
             P_id=P_id,
             post=post,
             label=label
         )
+    
+    def remove_duplicates(self, df):
+        return df.drop_duplicates(subset=["P_id"])

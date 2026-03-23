@@ -407,7 +407,7 @@ class UserFeatureExtractor:
     # Main feature builder
     # =====================================================
 
-    def build_features(self, A_id, S_id, P_id, post, label):
+    def calc_features(self, A_id, S_id, P_id, post, label):
 
         A = self.users[A_id]
         S = self.users[S_id]

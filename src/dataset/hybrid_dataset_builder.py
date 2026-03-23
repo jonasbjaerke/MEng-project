@@ -11,7 +11,7 @@ class HybridDatasetBuilder(DatasetBuilder):
         self.U_extractor = UserFeatureExtractor(users)
 
     def build_features(self, A_id, S_id, P_id, post, label):
-        M_features = self.M_extractor.build_features(
+        M_features = self.M_extractor.calc_features(
             A_id=A_id,
             S_id=S_id,
             P_id=P_id,
@@ -19,7 +19,7 @@ class HybridDatasetBuilder(DatasetBuilder):
             label=label
         )
 
-        U_features = self.U_extractor.build_features(
+        U_features = self.U_extractor.calc_features(
             A_id=A_id,
             S_id=S_id,
             P_id=P_id,
@@ -33,3 +33,11 @@ class HybridDatasetBuilder(DatasetBuilder):
                 merged[k] = v
 
         return merged
+    
+
+    def remove_duplicates(self, df):
+        return df.drop_duplicates(subset=["S_id", "A_id", "P_id"])
+                
+
+
+    

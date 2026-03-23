@@ -171,7 +171,7 @@ class MessageFeatureExtractor:
     def get_post_features(self, post_id):
         return self.text_dict.get(post_id, {})
 
-    def build_features(self, A_id, S_id, P_id, post, label):
+    def calc_features(self, A_id, S_id, P_id, post, label):
         """
         Returns message-level features for the current post P.
         """

@@ -14,12 +14,12 @@ print("Mixed:")
 print(predictor.evaluate_mixed(df))
 
 print("\n")
-print("In-Distribution:")
-print(predictor.evaluate_in_distribution(df))
-
-print("\n")
 print("Out-of-Distribution:")
 print(predictor.evaluate_out_of_distribution(df))
+
+print("\n")
+print("In-Distribution:")
+print(predictor.evaluate_in_distribution(df))
 
 print("\n")
 print("Feature importance:")
