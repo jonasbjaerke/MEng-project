@@ -1,8 +1,9 @@
-import pandas as pd
 import gc
-import torch
 import json
 from pathlib import Path
+
+import pandas as pd
+import torch
 from tqdm import tqdm
 
 from .message_features import add_all_m_features
@@ -44,28 +45,15 @@ class TextFeaturePipeline:
         seen = set()
 
         with self.temp_file.open("w", encoding="utf-8") as f:
-
-            # # From user history
-            # for user in users.values():
-            #     for activity in user.get("history", []):
-            #         uri = activity.get("post_uri")
-            #         text = activity.get("text")
-
-            #         if uri and text and uri not in seen:
-            #             json.dump({"post_uri": uri, "text": text}, f)
-            #             f.write("\n")
-            #             seen.add(uri)
-
-            # From posts
             for uri, post in posts.items():
+
                 text = post.get("record", {}).get("text")
 
-                if uri and text and uri not in seen:
+                if uri and uri not in seen:
                     text = "" if text is None else str(text)
-                    json.dump({"post_uri": uri, "text": text}, f)
+                    json.dump({"post_uri": uri, "text": text}, f, ensure_ascii=False)
                     f.write("\n")
                     seen.add(uri)
-
 
     # --------------------------------------------------
     # Step 2: Compute feature parquet chunks
@@ -81,9 +69,7 @@ class TextFeaturePipeline:
 
         self.raw_features_dir.mkdir(parents=True, exist_ok=True)
 
-        total_lines = sum(
-            1 for _ in self.temp_file.open("r", encoding="utf-8")
-        )
+        total_lines = sum(1 for _ in self.temp_file.open("r", encoding="utf-8"))
         total_chunks = (total_lines + chunk_size - 1) // chunk_size
 
         print(f"Total posts: {total_lines}, Total chunks: {total_chunks}")
@@ -99,7 +85,7 @@ class TextFeaturePipeline:
         ):
             enriched = add_all_m_features(
                 chunk,
-                batch_size=batch_size
+                text_col="text",   # <-- compatibility fix
             )
 
             part_file = self.raw_features_dir / f"part_{i}.parquet"
@@ -123,9 +109,7 @@ class TextFeaturePipeline:
         {post_uri: feature_dict}
         """
 
-        parquet_files = sorted(
-            self.raw_features_dir.glob("part_*.parquet")
-        )
+        parquet_files = sorted(self.raw_features_dir.glob("part_*.parquet"))
 
         if not parquet_files:
             print("No parquet files found.")
@@ -143,16 +127,17 @@ class TextFeaturePipeline:
                 for _, row in df_chunk.iterrows():
                     post_uri = row["post_uri"]
                     row_dict = row.drop(
-                        labels=["text", "post_uri"], errors="ignore"
+                        labels=["text", "post_uri"],
+                        errors="ignore"
                     ).to_dict()
 
                     if not first:
                         f.write(",\n")
                     first = False
 
-                    json.dump(post_uri, f)
+                    json.dump(post_uri, f, ensure_ascii=False)
                     f.write(": ")
-                    json.dump(row_dict, f, ensure_ascii=False)
+                    json.dump(row_dict, f, ensure_ascii=False, allow_nan=True)
 
                 del df_chunk
                 gc.collect()
@@ -169,7 +154,6 @@ class TextFeaturePipeline:
         """
         Remove temporary text JSONL file.
         """
-
         if self.temp_file.exists():
             self.temp_file.unlink()
 

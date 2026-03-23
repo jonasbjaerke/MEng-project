@@ -173,19 +173,21 @@ class MessageFeatureExtractor:
 
     def build_features(self, A_id, S_id, P_id, post, label):
         """
-        Returns message-level features only for the current post P.
+        Returns message-level features for the current post P.
         """
 
         row = {
-            "P_id": P_id,
             "A_id": A_id,
             "S_id": S_id,
+            "P_id": P_id,
             "hashtag": post.get("hashtag"),
             "label": label,
         }
 
         # Current post features
         P_features = self.get_post_features(P_id)
+        if not P_features:
+            print(f"Didn't find text features for {P_id}")
 
         for k, v in P_features.items():
             row[f"M-P_{k}"] = v

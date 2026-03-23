@@ -7,7 +7,7 @@ class BlueskyAPI:
     BASE_URL = "https://bsky.social/xrpc"
 
     def __init__(self, handle=None, app_password=None):
-        self.handle = "repostproj.bsky.social"
+        self.handle = "repostproj.bsky.social" # I recommend you use your own profile and password
         self.app_password = "vyvc-xg5q-seda-utaz" 
         self._token = None
 

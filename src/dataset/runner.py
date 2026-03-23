@@ -5,6 +5,7 @@ from ..utils import get_json, save_csv
 from .dataset_builder import DatasetBuilder
 from .message_dataset_builder import MessageDatasetBuilder
 from .user_dataset_builder import UserDatasetBuilder
+from .hybrid_dataset_builder import HybridDatasetBuilder
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -18,6 +19,7 @@ DATASETS = PROJECT_ROOT / "data" / "processed" / "datasets"
 FEATURE_REGISTRY = {
     "M": MessageDatasetBuilder,
     "U": UserDatasetBuilder,
+    "Hybrid": HybridDatasetBuilder,
 }
 
 
