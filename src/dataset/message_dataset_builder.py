@@ -19,7 +19,7 @@ class MessageDatasetBuilder(DatasetBuilder):
         )
     
     def _permission(self,reposters):
-        return reposters == []
+        return True
     
     def remove_duplicates(self, df):
         return df.drop_duplicates(subset=["P_id"])

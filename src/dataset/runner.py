@@ -50,9 +50,6 @@ def new_dataset(
     builder = builder_cls(users, posts)
     df = builder.build(neg_per_pos=neg_per_pos)
 
-    df = builder.remove_duplicates(df)
-
-
     # -------------------------
     # Save processed dataset
     # -------------------------
