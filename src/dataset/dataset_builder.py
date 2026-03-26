@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
+import random
 
 class DatasetBuilder(ABC):
     """
@@ -32,17 +32,17 @@ class DatasetBuilder(ABC):
     
     def _permission(self,reposters):
         return True
-    
+
     def _build_hashtag_caches(self):
         hashtag_users = {}
         hashtag_posts = {}
 
+        # Collect all hashtags and keep hashtag_posts logic unchanged
         for P_id, post in self.posts.items():
             hashtag = post.get("hashtag")
             if not hashtag:
                 continue
 
-            sender = (post.get("author") or {}).get("did")
             reposters = post.get("stored_reposters") or []
 
             if hashtag not in hashtag_users:
@@ -53,10 +53,28 @@ class DatasetBuilder(ABC):
             if self._permission(reposters):
                 hashtag_posts[hashtag].append((P_id, post))
 
-            if sender:
-                hashtag_users[hashtag].add(sender)
+        hashtags = list(hashtag_users.keys())
 
-            hashtag_users[hashtag].update(reposters)
+        # Collect all users
+        all_users = set()
+        all_users.update(self.users.keys())
+
+        all_users = list(all_users)
+        random.shuffle(all_users)
+
+        # Split users equally (as evenly as possible) across hashtags
+        n_users = len(all_users)
+        n_tags = len(hashtags)
+
+        if n_tags > 0:
+            base_size = n_users // n_tags
+            remainder = n_users % n_tags
+
+            start = 0
+            for i, hashtag in enumerate(hashtags):
+                group_size = base_size + (1 if i < remainder else 0)
+                hashtag_users[hashtag] = set(all_users[start:start + group_size])
+                start += group_size
 
         self._hashtag_users = hashtag_users
         self._hashtag_posts = hashtag_posts
