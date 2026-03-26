@@ -14,12 +14,7 @@ class RepostPredictor:
         - Out-of-distribution evaluation
     """
 
-    def __init__(self, model_builder):
-        """
-        model_builder: function(random_state=...) -> sklearn model
-        id_cols: columns to drop before training
-        """
-        
+    def __init__(self, model_builder):     
         self.model_builder = model_builder
         self.id_cols = ["A_id", "S_id", "P_id"]
         self.extra_cols_to_remove = []

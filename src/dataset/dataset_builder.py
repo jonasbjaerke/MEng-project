@@ -26,9 +26,9 @@ class DatasetBuilder(ABC):
     def build_features(self, A_id, S_id, P_id, post, label):
         pass
 
-    @abstractmethod
+    
     def remove_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
-        pass
+        return df.drop_duplicates(subset=["S_id", "A_id"])
     
     def _permission(self,reposters):
         return True
@@ -102,7 +102,7 @@ class DatasetBuilder(ABC):
                 continue
             rows.append(pos_row)
 
-            # -------- Negative --------
+            # -------- Negative -------- # Note we divide neg R into groups based on hashtag they reposted some post. this is not truly ranodm. might be better to divide groups randomly.
             neg_indices = self.rng.choice(
                 len(hashtag_posts),
                 size=min(neg_per_pos, len(hashtag_posts)),
@@ -138,5 +138,4 @@ class DatasetBuilder(ABC):
 
 
         df = pd.DataFrame(rows)
-        df = self.remove_duplicates(df)
         return df
