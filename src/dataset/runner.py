@@ -6,6 +6,7 @@ from .dataset_builder import DatasetBuilder
 from .message_dataset_builder import MessageDatasetBuilder
 from .user_dataset_builder import UserDatasetBuilder
 from .hybrid_dataset_builder import HybridDatasetBuilder
+from .bert_dataset_builder import MessageBertDatasetBuilder
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +21,7 @@ FEATURE_REGISTRY = {
     "M": MessageDatasetBuilder,
     "U": UserDatasetBuilder,
     "Hybrid": HybridDatasetBuilder,
+    "Bert": MessageBertDatasetBuilder,
 }
 
 
