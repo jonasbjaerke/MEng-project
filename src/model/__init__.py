@@ -1,6 +1,6 @@
 
 
-from .repost_predictor import RepostPredictor
+from .DT_repost_predictor import RepostPredictor
 from .xgboost import build_xgboost, XGBoostConfig
 
 __all__ = [

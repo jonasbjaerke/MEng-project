@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from .repost_predictor import RepostPredictor
+from .DT_repost_predictor import RepostPredictor
 from .xgboost import build_xgboost
 
 
