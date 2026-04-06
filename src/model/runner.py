@@ -4,7 +4,7 @@ import pandas as pd
 from .DT_repost_predictor import RepostPredictor
 from .bert_repost_predictor import BertRepostPredictor, BertConfig
 from .xgboost import build_xgboost
-
+import os
 
 def main():
     parser = argparse.ArgumentParser()
@@ -16,10 +16,10 @@ def main():
         help="Which model family to run: dt or bert",
     )
     parser.add_argument(
-        "--data_path",
+        "--file",
         type=str,
-        default="data/processed/datasets/dataset.csv",
-        help="Path to dataset csv",
+        default="dataset.csv",
+        help="Name of dataset file (located in data/processed/datasets/)"
     )
     parser.add_argument(
         "--eval",
@@ -33,11 +33,14 @@ def main():
     parser.add_argument("--bert_model_name", type=str, default="bert-base-uncased")
     parser.add_argument("--max_length", type=int, default=128)
     parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--epochs", type=int, default=2)
 
     args = parser.parse_args()
 
-    df = pd.read_csv(args.data_path)
+    BASE_DIR = "data/processed/datasets"
+    data_path = os.path.join(BASE_DIR, args.file)
+
+    df = pd.read_csv(data_path)
 
     if args.model == "dt":
         predictor = RepostPredictor(build_xgboost)

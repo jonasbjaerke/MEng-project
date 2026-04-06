@@ -7,7 +7,6 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-# --- reduce parallelism / worker issues on macOS ---
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -59,7 +58,6 @@ def get_device(force_cpu: bool = False) -> torch.device:
 
 @dataclass
 class BertConfig:
-    # Match thesis-style MTX more closely
     model_name: str = "bert-base-uncased"
     max_length: int = 512
 
@@ -121,9 +119,8 @@ class BertRepostPredictor:
         )
         self.data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
 
-    # --------------------------------------------------
     # Basic checks / dataframe prep
-    # --------------------------------------------------
+
 
     def _validate_df(self, df: pd.DataFrame) -> None:
         missing = [c for c in self.required_cols if c not in df.columns]
