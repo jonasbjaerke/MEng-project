@@ -37,6 +37,11 @@ class TextFeaturePipeline:
     def build_text_jsonl(self, posts: dict, users: dict):
         """
         Stream {post_uri, text} to JSONL file.
+
+        Includes:
+        - main posts from `posts`
+        - historical posts from each user in `users[did]["history"]`
+
         Safe for millions of rows.
         """
 
@@ -44,16 +49,29 @@ class TextFeaturePipeline:
 
         seen = set()
 
+        def write_row(f, uri, text):
+            if not uri or uri in seen:
+                return
+
+            text = "" if text is None else str(text)
+            json.dump({"post_uri": uri, "text": text}, f, ensure_ascii=False)
+            f.write("\n")
+            seen.add(uri)
+
         with self.temp_file.open("w", encoding="utf-8") as f:
+            # Main collected posts
             for uri, post in posts.items():
-
                 text = post.get("record", {}).get("text")
+                write_row(f, uri, text)
 
-                if uri and uri not in seen:
-                    text = "" if text is None else str(text)
-                    json.dump({"post_uri": uri, "text": text}, f, ensure_ascii=False)
-                    f.write("\n")
-                    seen.add(uri)
+            # History posts from each collected user
+            for user in users.values():
+                history = user.get("history") or []
+
+                for item in history:
+                    uri = item.get("post_uri")
+                    text = item.get("text")
+                    write_row(f, uri, text)
 
     # --------------------------------------------------
     # Step 2: Compute feature parquet chunks

@@ -57,6 +57,7 @@ def main():
         raise ValueError(f"Unsupported model type: {args.model}")
 
     print(f"\nRunning model: {args.model}")
+    print(f"\nRunning file: {args.file}")
 
     if args.eval in ["mixed", "all"]:
         print("\nMixed:")

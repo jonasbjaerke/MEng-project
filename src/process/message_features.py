@@ -2,6 +2,7 @@ import os
 import gc
 import re
 import time
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -39,7 +40,7 @@ def ensure_nltk_resources():
         try:
             nltk.data.find(path)
         except LookupError:
-            nltk.download(name)
+            nltk.download(name, quiet=True)
 
 
 ensure_nltk_resources()
@@ -56,7 +57,7 @@ else:
 print("Using device:", DEVICE)
 
 
-def load_model(model_name):
+def load_model(model_name: str):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     model.to(DEVICE)
@@ -78,32 +79,8 @@ class_mapping_single = list(model_topic_single.config.id2label.values())
 
 sia = SentimentIntensityAnalyzer()
 
-grammar_check_tool = None
-GRAMMAR_AVAILABLE = True
 
-
-def get_grammar_tool():
-    global grammar_check_tool, GRAMMAR_AVAILABLE
-
-    if not GRAMMAR_AVAILABLE:
-        return None
-
-    if grammar_check_tool is None:
-        try:
-            import language_tool_python
-            grammar_check_tool = language_tool_python.LanguageTool("en-US")
-        except Exception:
-            GRAMMAR_AVAILABLE = False
-            return None
-
-    return grammar_check_tool
-
-
-def berkem_preprocess(text):
-    text = str(text)
-    text = re.sub(r"RT @\w+: ", " ", text)
-    text = re.sub(r"(@[A-Za-z0-9_]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", text)
-
+def _clean_with_tweet_preprocessor(text: str) -> str:
     if PREPROCESSOR_AVAILABLE:
         tweet_preprocessor.set_options(
             tweet_preprocessor.OPT.URL,
@@ -111,40 +88,38 @@ def berkem_preprocess(text):
             tweet_preprocessor.OPT.MENTION,
             tweet_preprocessor.OPT.NUMBER,
         )
-        text = tweet_preprocessor.clean(text)
+        return tweet_preprocessor.clean(text)
+    return text
 
+
+def berkem_preprocess(text: str) -> str:
+    text = str(text)
+    text = re.sub(r"RT @\w+: ", " ", text)
+    text = re.sub(r"(@[A-Za-z0-9_]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", text)
+    text = _clean_with_tweet_preprocessor(text)
     text = re.sub(r"#", "", text)
     text = re.sub(r"&amp", "", text)
     return text.lower().strip()
 
 
-def grammar_p(text):
+def grammar_p(text: str) -> str:
     text = str(text)
     text = re.sub(r"RT @\w+: ", " ", text)
     text = re.sub(r"(@[A-Za-z0-9_]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", text)
-
-    if PREPROCESSOR_AVAILABLE:
-        tweet_preprocessor.set_options(
-            tweet_preprocessor.OPT.URL,
-            tweet_preprocessor.OPT.EMOJI,
-            tweet_preprocessor.OPT.MENTION,
-            tweet_preprocessor.OPT.NUMBER,
-        )
-        text = tweet_preprocessor.clean(text)
-
+    text = _clean_with_tweet_preprocessor(text)
     return text
 
 
-def roberta_preprocess(text):
+def roberta_preprocess(text: str) -> str:
     new_text = []
-    for t in str(text).split(" "):
+    for t in str(text).split():
         t = "@user" if t.startswith("@") and len(t) > 1 else t
         t = "http" if t.startswith("http") else t
         new_text.append(t)
     return " ".join(new_text)
 
 
-def assign_sentiment(neg, pos):
+def assign_sentiment(neg: float, pos: float) -> str:
     if neg > pos:
         return "negative"
     elif pos > neg:
@@ -152,7 +127,7 @@ def assign_sentiment(neg, pos):
     return "neutral"
 
 
-def read_tokenized(text):
+def read_tokenized(text: str) -> str:
     text = str(text)
     try:
         sentences = nltk.sent_tokenize(text)
@@ -161,7 +136,7 @@ def read_tokenized(text):
         return text
 
 
-def safe_readability(tokenized_text):
+def safe_readability(tokenized_text: str):
     tokenized_text = str(tokenized_text).strip()
 
     if not tokenized_text:
@@ -178,48 +153,37 @@ def safe_readability(tokenized_text):
         raise
 
 
-def get_grammar_score(text):
-    tool = get_grammar_tool()
-    if tool is None:
-        return [np.nan, np.nan]
+def build_preprocessed_texts(texts: List[str]) -> pd.DataFrame:
+    rows = []
 
-    try:
-        sentences = nltk.tokenize.sent_tokenize(text)
-    except Exception:
-        return [np.nan, np.nan]
+    for text in texts:
+        raw = str(text)
+        rows.append(
+            {
+                "full_text": raw,
+                "text_berkem": berkem_preprocess(raw),
+                "text_grammar": grammar_p(raw),
+                "text_roberta": roberta_preprocess(raw),
+                "text_tweet": preprocess_tweet(raw),
+            }
+        )
 
-    if len(sentences) == 0:
-        return [np.nan, np.nan]
-
-    scores_word_based_sentence = []
-    scores_sentence_based_sentence = []
-
-    for sentence in sentences:
-        try:
-            matches = tool.check(sentence)
-            count_errors = len(matches)
-        except Exception:
-            return [np.nan, np.nan]
-
-        scores_sentence_based_sentence.append(min(count_errors, 1))
-        scores_word_based_sentence.append(count_errors)
-
-    try:
-        word_count = len(nltk.tokenize.word_tokenize(text))
-    except Exception:
-        word_count = 0
-
-    score_word_based = np.nan if word_count == 0 else 1 - (np.sum(scores_word_based_sentence) / word_count)
-    sentence_count = len(sentences)
-    score_sentence_based = 1 - (np.sum(scores_sentence_based_sentence) / sentence_count)
-    return [score_word_based, score_sentence_based]
+    return pd.DataFrame(rows)
 
 
-def m_mapping_category_values(df):
+def m_mapping_category_values(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     mapping_sentiment_overall = {"neutral": 0, "negative": 1, "positive": 2}
-    mapping_emo_overall = {"others": 0, "joy": 1, "sadness": 2, "disgust": 3, "surprise": 4, "anger": 5, "fear": 6}
+    mapping_emo_overall = {
+        "others": 0,
+        "joy": 1,
+        "sadness": 2,
+        "disgust": 3,
+        "surprise": 4,
+        "anger": 5,
+        "fear": 6,
+    }
     mapping_topic_overall = {
         "arts_&_culture": 0,
         "business_&_entrepreneurs": 1,
@@ -250,313 +214,310 @@ def m_mapping_category_values(df):
         "science_&_technology": 5,
     }
 
-    df["sentiment_overall"] = df["sentiment_overall"].map(mapping_sentiment_overall)
-    df["emo_overall"] = df["emo_overall"].map(mapping_emo_overall)
-    df["topic_overall"] = df["topic_overall"].map(mapping_topic_overall)
-    df["single_topic_overall"] = df["single_topic_overall"].map(mapping_single_topic_overall)
+    if "sentiment_overall" in df.columns:
+        df["sentiment_overall"] = df["sentiment_overall"].map(mapping_sentiment_overall)
+    if "emo_overall" in df.columns:
+        df["emo_overall"] = df["emo_overall"].map(mapping_emo_overall)
+    if "topic_overall" in df.columns:
+        df["topic_overall"] = df["topic_overall"].map(mapping_topic_overall)
+    if "single_topic_overall" in df.columns:
+        df["single_topic_overall"] = df["single_topic_overall"].map(mapping_single_topic_overall)
+
     return df
 
 
-def add_all_m_features(df, text_col="full_text", batch_size=128):
+@torch.inference_mode()
+def batched_transformer_predict(
+    tokenizer,
+    model,
+    texts: List[str],
+    batch_size: int = 64,
+    max_length: int = 128,
+    mode: str = "softmax",
+) -> np.ndarray:
+    outputs = []
+
+    for start in range(0, len(texts), batch_size):
+        batch = texts[start:start + batch_size]
+
+        enc = tokenizer(
+            batch,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=max_length,
+        )
+        enc = {k: v.to(DEVICE) for k, v in enc.items()}
+
+        logits = model(**enc).logits.detach().cpu().numpy()
+
+        if mode == "softmax":
+            probs = softmax(logits, axis=1)
+        elif mode == "sigmoid":
+            probs = expit(logits)
+        else:
+            probs = logits
+
+        outputs.append(probs)
+
+    if not outputs:
+        return np.empty((0, 0))
+
+    return np.vstack(outputs)
+
+
+def compute_basic_features(prep_df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+
+    for row in prep_df.itertuples(index=False):
+        text = row.full_text
+        berkem_text = row.text_berkem
+
+        try:
+            text_len = len(berkem_text)
+            word_count = len(str(berkem_text).split())
+        except Exception:
+            text_len = np.nan
+            word_count = np.nan
+
+        try:
+            sentiment = sia.polarity_scores(berkem_text)
+        except Exception:
+            sentiment = {"neg": np.nan, "neu": np.nan, "pos": np.nan, "compound": np.nan}
+
+        try:
+            blob_sentiment = TextBlob(text).sentiment
+            polarity = blob_sentiment.polarity
+            subjectivity = blob_sentiment.subjectivity
+        except Exception:
+            polarity = np.nan
+            subjectivity = np.nan
+
+        try:
+            readability_results = safe_readability(read_tokenized(berkem_text))
+        except Exception:
+            readability_results = None
+
+        def rget(*keys):
+            if readability_results is None:
+                return np.nan
+            try:
+                val = readability_results
+                for k in keys:
+                    val = val[k]
+                return val
+            except Exception:
+                return np.nan
+
+        rows.append(
+            {
+                "full_text": text,
+                "text_len": text_len,
+                "word_count": word_count,
+                "neg": sentiment["neg"],
+                "neu": sentiment["neu"],
+                "pos": sentiment["pos"],
+                "compound": sentiment["compound"],
+                "sentiment_overall": assign_sentiment(sentiment["neg"], sentiment["pos"])
+                if not (pd.isna(sentiment["neg"]) or pd.isna(sentiment["pos"]))
+                else np.nan,
+                "grammar-word-score": np.nan,
+                "grammar-sentence-score": np.nan,
+                "subjectivity": subjectivity,
+                "polarity": polarity,
+                "Kincaid": rget("readability grades", "Kincaid"),
+                "ARI": rget("readability grades", "ARI"),
+                "Coleman-Liau": rget("readability grades", "Coleman-Liau"),
+                "FleschReadingEase": rget("readability grades", "FleschReadingEase"),
+                "GunningFogIndex": rget("readability grades", "GunningFogIndex"),
+                "LIX": rget("readability grades", "LIX"),
+                "SMOGIndex": rget("readability grades", "SMOGIndex"),
+                "RIX": rget("readability grades", "RIX"),
+                "DaleChallIndex": rget("readability grades", "DaleChallIndex"),
+                "complex_words": rget("sentence info", "complex_words"),
+                "complex_words_dc": rget("sentence info", "complex_words_dc"),
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def compute_pysentimiento_features(prep_df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+
+    for row in prep_df.itertuples(index=False):
+        text = row.full_text
+        tweet_text = row.text_tweet
+
+        emo_output = None
+        hs_output = None
+
+        try:
+            emo_output = emotion_analyzer.predict(tweet_text)
+        except Exception:
+            pass
+
+        try:
+            hs_output = hate_speech_analyzer.predict(tweet_text)
+        except Exception:
+            pass
+
+        rows.append(
+            {
+                "full_text": text,
+                "emo_overall": getattr(emo_output, "output", np.nan),
+                "emo_anger": getattr(emo_output, "probas", {}).get("anger", np.nan) if emo_output else np.nan,
+                "emo_joy": getattr(emo_output, "probas", {}).get("joy", np.nan) if emo_output else np.nan,
+                "emo_fear": getattr(emo_output, "probas", {}).get("fear", np.nan) if emo_output else np.nan,
+                "emo_disgust": getattr(emo_output, "probas", {}).get("disgust", np.nan) if emo_output else np.nan,
+                "emo_surprise": getattr(emo_output, "probas", {}).get("surprise", np.nan) if emo_output else np.nan,
+                "emo_sadness": getattr(emo_output, "probas", {}).get("sadness", np.nan) if emo_output else np.nan,
+                "emo_others": getattr(emo_output, "probas", {}).get("others", np.nan) if emo_output else np.nan,
+                "hs_aggressive": getattr(hs_output, "probas", {}).get("aggressive", np.nan) if hs_output else np.nan,
+                "hs_hateful": getattr(hs_output, "probas", {}).get("hateful", np.nan) if hs_output else np.nan,
+                "hs_targeted": getattr(hs_output, "probas", {}).get("targeted", np.nan) if hs_output else np.nan,
+                "hs_count": len(getattr(hs_output, "output", [])) if hs_output and hasattr(hs_output, "output") else np.nan,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def compute_transformer_features(prep_df: pd.DataFrame, batch_size: int = 64) -> pd.DataFrame:
+    texts = prep_df["full_text"].tolist()
+    roberta_texts = prep_df["text_roberta"].tolist()
+
+    irony_probs = batched_transformer_predict(
+        tokenizer_irony,
+        model_irony,
+        roberta_texts,
+        batch_size=batch_size,
+        max_length=128,
+        mode="softmax",
+    )
+
+    offensive_probs = batched_transformer_predict(
+        tokenizer_offensive,
+        model_offensive,
+        roberta_texts,
+        batch_size=batch_size,
+        max_length=128,
+        mode="softmax",
+    )
+
+    emoji_probs = batched_transformer_predict(
+        tokenizer_emoji,
+        model_emoji,
+        roberta_texts,
+        batch_size=batch_size,
+        max_length=128,
+        mode="softmax",
+    )
+
+    topic_probs = batched_transformer_predict(
+        tokenizer_topic,
+        model_topic,
+        texts,
+        batch_size=batch_size,
+        max_length=128,
+        mode="sigmoid",
+    )
+
+    topic_single_probs = batched_transformer_predict(
+        tokenizer_topic_single,
+        model_topic_single,
+        roberta_texts,
+        batch_size=batch_size,
+        max_length=128,
+        mode="sigmoid",
+    )
+
+    rows = []
+
+    for i, text in enumerate(texts):
+        row = {
+            "full_text": text,
+            "irony": int(irony_probs[i][1] >= 0.5) if irony_probs.shape[0] > i else np.nan,
+            "offensive": offensive_probs[i][1] if offensive_probs.shape[0] > i else np.nan,
+            "emoji": int(np.argmax(emoji_probs[i])) if emoji_probs.shape[0] > i else np.nan,
+        }
+
+        if topic_probs.shape[0] > i:
+            row["topic_count"] = int(np.sum((topic_probs[i] >= 0.5).astype(int)))
+            row["topic_overall"] = class_mapping[int(np.argmax(topic_probs[i]))]
+            for j, label in enumerate(class_mapping):
+                row[label] = topic_probs[i][j]
+        else:
+            row["topic_count"] = np.nan
+            row["topic_overall"] = np.nan
+            for label in class_mapping:
+                row[label] = np.nan
+
+        if topic_single_probs.shape[0] > i:
+            row["single_topic_count"] = int(np.sum((topic_single_probs[i] >= 0.5).astype(int)))
+            row["single_topic_overall"] = class_mapping_single[int(np.argmax(topic_single_probs[i]))]
+            for j, label in enumerate(class_mapping_single):
+                row["single_" + label] = topic_single_probs[i][j]
+        else:
+            row["single_topic_count"] = np.nan
+            row["single_topic_overall"] = np.nan
+            for label in class_mapping_single:
+                row["single_" + label] = np.nan
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def add_all_m_features(
+    df: pd.DataFrame,
+    text_col: str = "full_text",
+    batch_size: int = 64,
+) -> pd.DataFrame:
     start_time = time.perf_counter()
 
     df = df.copy()
     df = df.dropna(subset=[text_col]).copy()
     df[text_col] = df[text_col].astype(str)
 
-    unique_text = df[text_col].unique()
+    if text_col != "full_text":
+        df = df.rename(columns={text_col: "full_text"})
+        rename_back = True
+    else:
+        rename_back = False
 
-    text_len, word_count = {}, {}
-    sentiment_scores = {}
-    grammar_score = {}
-    subjectivity_score, polarity_score = {}, {}
-    emo_results, hs_results = {}, {}
-    irony_scores, offensive_scores = {}, {}
-    emoji_count = {}
-    readability_results = {}
-    topic_scores, topic_pred = {}, {}
-    topic_scores_single, topic_pred_single = {}, {}
+    unique_texts = df["full_text"].drop_duplicates().tolist()
 
-    e_count = 0
-    remove_list = []
+    print(f"Preparing {len(unique_texts)} unique texts...")
+    prep_df = build_preprocessed_texts(unique_texts)
 
-    def log_processing_error(step, idx, text, e):
-        print(f"[ERROR {step}] text #{idx}: {repr(str(text)[:200])}")
-        print(f"  error: {type(e).__name__}: {e}")
+    print("Computing basic features...")
+    basic_df = compute_basic_features(prep_df)
 
-    for idx, text in enumerate(unique_text, 1):
-        text = str(text)
+    print("Computing pysentimiento features...")
+    pysent_df = compute_pysentimiento_features(prep_df)
 
-        try:
-            grammar_text = grammar_p(text)
-            berkem_text = berkem_preprocess(text)
-        except Exception as e:
-            log_processing_error("preprocess", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
+    print(f"Computing transformer features in batches of {batch_size}...")
+    transformer_df = compute_transformer_features(prep_df, batch_size=batch_size)
 
-        try:
-            text_len[text] = len(berkem_text)
-            word_count[text] = len(str(berkem_text).split())
-        except Exception as e:
-            log_processing_error("length/word_count", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
+    feat_df = basic_df.merge(pysent_df, on="full_text", how="left")
+    feat_df = feat_df.merge(transformer_df, on="full_text", how="left")
 
-        try:
-            sentiment_scores[text] = sia.polarity_scores(berkem_text)
-        except Exception as e:
-            log_processing_error("sentiment", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
+    feat_df = m_mapping_category_values(feat_df)
 
-        try:
-            grammar_score[text] = get_grammar_score(grammar_text)
-        except Exception as e:
-            log_processing_error("grammar", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
+    df = df.merge(feat_df, on="full_text", how="left")
 
-        try:
-            subjectivity_score[text] = TextBlob(text).sentiment[1]
-            polarity_score[text] = TextBlob(text).sentiment[0]
-        except Exception as e:
-            log_processing_error("textblob", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
+    helper_cols = [c for c in ["text_berkem", "text_grammar", "text_roberta", "text_tweet"] if c in df.columns]
+    if helper_cols:
+        df = df.drop(columns=helper_cols)
 
-        try:
-            emo_results[text] = emotion_analyzer.predict(preprocess_tweet(text))
-        except Exception as e:
-            log_processing_error("emotion", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
-
-        try:
-            hs_results[text] = hate_speech_analyzer.predict(preprocess_tweet(text))
-        except Exception as e:
-            log_processing_error("hate_speech", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
-
-        try:
-            encoded_input_irony = tokenizer_irony(
-                roberta_preprocess(text),
-                return_tensors="pt",
-                truncation=True,
-                max_length=128,
-            )
-            encoded_input_irony = {k: v.to(DEVICE) for k, v in encoded_input_irony.items()}
-            output_irony = model_irony(**encoded_input_irony)
-            irony_scores[text] = softmax(output_irony.logits[0].detach().cpu().numpy())
-        except Exception as e:
-            log_processing_error("irony", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
-
-        try:
-            encoded_input_offensive = tokenizer_offensive(
-                roberta_preprocess(text),
-                return_tensors="pt",
-                truncation=True,
-                max_length=128,
-            )
-            encoded_input_offensive = {k: v.to(DEVICE) for k, v in encoded_input_offensive.items()}
-            output_offensive = model_offensive(**encoded_input_offensive)
-            offensive_scores[text] = softmax(output_offensive.logits[0].detach().cpu().numpy())
-        except Exception as e:
-            log_processing_error("offensive", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
-
-        try:
-            encoded_input_emoji = tokenizer_emoji(
-                roberta_preprocess(text),
-                return_tensors="pt",
-                truncation=True,
-                max_length=128,
-            )
-            encoded_input_emoji = {k: v.to(DEVICE) for k, v in encoded_input_emoji.items()}
-            output_emoji = model_emoji(**encoded_input_emoji)
-            emoji_scores_local = softmax(output_emoji.logits[0].detach().cpu().numpy())
-            ranking = np.argsort(emoji_scores_local)[::-1]
-            emoji_count[text] = int(ranking[0])
-        except Exception as e:
-            log_processing_error("emoji", idx, text, e)
-            e_count += 1
-            remove_list.append(text)
-            continue
-
-        try:
-            readability_results[text] = safe_readability(read_tokenized(berkem_text))
-        except Exception as e:
-            log_processing_error("readability", idx, text, e)
-            e_count += 1
-            readability_results[text] = None
-
-        try:
-            tokens_topic = tokenizer_topic(
-                text,
-                return_tensors="pt",
-                truncation=True,
-                max_length=128,
-            )
-            tokens_topic = {k: v.to(DEVICE) for k, v in tokens_topic.items()}
-            output_topic = model_topic(**tokens_topic)
-            topic_scores[text] = expit(output_topic.logits[0].detach().cpu().numpy())
-            topic_pred[text] = (topic_scores[text] >= 0.5) * 1
-        except Exception as e:
-            log_processing_error("topic-multi", idx, text, e)
-            e_count += 1
-            topic_scores[text] = None
-            topic_pred[text] = None
-            remove_list.append(text)
-            continue
-
-        try:
-            tokens_topic_single = tokenizer_topic_single(
-                roberta_preprocess(text),
-                return_tensors="pt",
-                truncation=True,
-                max_length=128,
-            )
-            tokens_topic_single = {k: v.to(DEVICE) for k, v in tokens_topic_single.items()}
-            output_topic_single = model_topic_single(**tokens_topic_single)
-            topic_scores_single[text] = expit(output_topic_single.logits[0].detach().cpu().numpy())
-            topic_pred_single[text] = (topic_scores_single[text] >= 0.5) * 1
-        except Exception as e:
-            log_processing_error("topic-single", idx, text, e)
-            e_count += 1
-            topic_scores_single[text] = None
-            topic_pred_single[text] = None
-            remove_list.append(text)
-            continue
-
-    df = df[~df[text_col].astype(str).isin(remove_list)].copy()
-
-    df["text_len"] = df[text_col].apply(lambda x: text_len[str(x)])
-    df["word_count"] = df[text_col].apply(lambda x: word_count[str(x)])
-
-    df["neg"] = df[text_col].apply(lambda x: sentiment_scores[str(x)]["neg"])
-    df["neu"] = df[text_col].apply(lambda x: sentiment_scores[str(x)]["neu"])
-    df["pos"] = df[text_col].apply(lambda x: sentiment_scores[str(x)]["pos"])
-    df["compound"] = df[text_col].apply(lambda x: sentiment_scores[str(x)]["compound"])
-    df["sentiment_overall"] = df[text_col].apply(
-        lambda x: assign_sentiment(
-            sentiment_scores[str(x)]["neg"],
-            sentiment_scores[str(x)]["pos"]
-        )
-    )
-
-    df["grammar-word-score"] = df[text_col].apply(lambda x: grammar_score[str(x)][0])
-    df["grammar-sentence-score"] = df[text_col].apply(lambda x: grammar_score[str(x)][1])
-
-    df["subjectivity"] = df[text_col].apply(lambda x: subjectivity_score[str(x)])
-    df["polarity"] = df[text_col].apply(lambda x: polarity_score[str(x)])
-
-    df["emo_overall"] = df[text_col].apply(lambda x: emo_results[str(x)].output)
-    df["emo_anger"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["anger"])
-    df["emo_joy"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["joy"])
-    df["emo_fear"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["fear"])
-    df["emo_disgust"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["disgust"])
-    df["emo_surprise"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["surprise"])
-    df["emo_sadness"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["sadness"])
-    df["emo_others"] = df[text_col].apply(lambda x: emo_results[str(x)].probas["others"])
-
-    df["hs_aggressive"] = df[text_col].apply(lambda x: hs_results[str(x)].probas["aggressive"])
-    df["hs_hateful"] = df[text_col].apply(lambda x: hs_results[str(x)].probas["hateful"])
-    df["hs_targeted"] = df[text_col].apply(lambda x: hs_results[str(x)].probas["targeted"])
-    df["hs_count"] = df[text_col].apply(lambda x: len(hs_results[str(x)].output))
-
-    df["irony"] = df[text_col].apply(lambda x: 0 if irony_scores[str(x)][1] < 0.5 else 1)
-    df["offensive"] = df[text_col].apply(lambda x: offensive_scores[str(x)][1])
-
-    df["emoji"] = df[text_col].apply(lambda x: emoji_count[str(x)])
-
-    df["Kincaid"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["Kincaid"]
-    )
-    df["ARI"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["ARI"]
-    )
-    df["Coleman-Liau"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["Coleman-Liau"]
-    )
-    df["FleschReadingEase"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["FleschReadingEase"]
-    )
-    df["GunningFogIndex"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["GunningFogIndex"]
-    )
-    df["LIX"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["LIX"]
-    )
-    df["SMOGIndex"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["SMOGIndex"]
-    )
-    df["RIX"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["RIX"]
-    )
-    df["DaleChallIndex"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["readability grades"]["DaleChallIndex"]
-    )
-    df["complex_words"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["sentence info"]["complex_words"]
-    )
-    df["complex_words_dc"] = df[text_col].apply(
-        lambda x: np.nan if readability_results[str(x)] is None
-        else readability_results[str(x)]["sentence info"]["complex_words_dc"]
-    )
-
-    for i in range(len(class_mapping)):
-        df[class_mapping[i]] = df[text_col].apply(lambda x, i=i: topic_scores[str(x)][i])
-
-    df["topic_count"] = df[text_col].apply(lambda x: int(sum(topic_pred[str(x)])))
-    df["topic_overall"] = df[text_col].apply(
-        lambda x: class_mapping[
-            topic_scores[str(x)].tolist().index(max(topic_scores[str(x)]))
-        ]
-    )
-
-    for i in range(len(class_mapping_single)):
-        df["single_" + class_mapping_single[i]] = df[text_col].apply(
-            lambda x, i=i: topic_scores_single[str(x)][i]
-        )
-
-    df["single_topic_count"] = df[text_col].apply(lambda x: int(sum(topic_pred_single[str(x)])))
-    df["single_topic_overall"] = df[text_col].apply(
-        lambda x: class_mapping_single[
-            topic_scores_single[str(x)].tolist().index(max(topic_scores_single[str(x)]))
-        ]
-    )
-
-    df = m_mapping_category_values(df)
+    if rename_back:
+        df = df.rename(columns={"full_text": text_col})
 
     gc.collect()
 
     finish_time = time.perf_counter()
     print(f"processed {len(df)} rows")
-    print(f"removed {len(set(remove_list))} unique texts because of processing errors")
-    print(f"total processing errors: {e_count}")
-    print(f"finished in {(finish_time - start_time) / 60} minutes")
+    print(f"finished in {(finish_time - start_time) / 60:.2f} minutes")
 
     return df
