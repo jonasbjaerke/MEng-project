@@ -29,10 +29,10 @@ def main():
         help="Which evaluation to run",
     )
 
-    # optional bert config
+    #bert config
     parser.add_argument("--bert_model_name", type=str, default="bert-base-uncased")
     parser.add_argument("--max_length", type=int, default=128)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=2)
 
     args = parser.parse_args()
@@ -73,7 +73,18 @@ def main():
 
     if args.model == "dt":
         print("\nFeature importance:")
-        print(predictor.get_feature_gains())
+        gains_df = predictor.get_feature_gains()
+        print(gains_df)
+
+        output_dir = "results/DT/Feature_analysis"
+        os.makedirs(output_dir, exist_ok=True)
+
+        filename = f"{os.path.splitext(args.file)[0]}_feature_gains.csv"
+        output_path = os.path.join(output_dir, filename)
+
+        gains_df.to_csv(output_path, index=False)
+
+        print(f"\nFeature gains saved to: {output_path}")
 
 
 if __name__ == "__main__":

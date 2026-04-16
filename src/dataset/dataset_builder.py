@@ -29,9 +29,6 @@ class DatasetBuilder(ABC):
     
     def remove_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         return df.drop_duplicates(subset=["S_id", "A_id"])
-    
-    def _permission(self,reposters):
-        return True
 
     def _build_hashtag_caches(self):
         hashtag_users = {}

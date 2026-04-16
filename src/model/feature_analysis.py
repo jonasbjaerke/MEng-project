@@ -16,22 +16,18 @@ def extract_mean_f1(result):
 
 def get_next_removable_feature(gain_df, ignored_features):
     """
-    Return the highest-gain feature that:
-    - is not already ignored
-    - does not start with 'M'
+    Return the highest-gain feature that is not already ignored.
     """
     for _, row in gain_df.iterrows():
         feature = str(row["feature"])
         if feature in ignored_features:
-            continue
-        if feature.startswith("M"):
             continue
         return feature
     return None
 
 
 def main():
-    df = pd.read_csv("data/processed/datasets/U1.csv")
+    df = pd.read_csv("data/processed/datasets/U5.csv")
 
     results = []
     ignored_features = []

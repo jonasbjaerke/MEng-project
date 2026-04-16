@@ -166,6 +166,9 @@ class RepostPredictor:
             "gain": self._feature_gains
         })
 
+        # ensure numeric
+        gain_df["gain"] = pd.to_numeric(gain_df["gain"], errors="coerce")
+
         gain_df = gain_df.sort_values("gain", ascending=False)
 
         return gain_df
