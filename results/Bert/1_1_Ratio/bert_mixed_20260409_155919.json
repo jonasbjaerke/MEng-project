@@ -1,0 +1,56 @@
+{
+  "experiment_name": "bert_mixed",
+  "timestamp": "20260409_155919",
+  "device": "mps",
+  "config": {
+    "model_name": "bert-base-uncased",
+    "max_length": 128,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "batch_size": 64,
+    "num_train_epochs": 2,
+    "early_stopping_patience": 2,
+    "dropout_rate": 0.1,
+    "use_class_weights": false,
+    "use_threshold_search": false,
+    "force_cpu": false,
+    "fp16": false,
+    "bf16": false,
+    "logging_steps": 100,
+    "sample_size": null,
+    "num_workers": 0,
+    "gradient_clip_val": 1.0
+  },
+  "summary": {
+    "dataset_rows": 46238,
+    "n_runs": 2,
+    "f1_mean": 0.6075624544722429,
+    "f1_std": 0.014165471745036406
+  },
+  "runs": [
+    {
+      "seed": 0,
+      "run_name": "mixed",
+      "train_size": 29129,
+      "val_size": 3237,
+      "test_size": 13872,
+      "best_epoch": 2,
+      "best_val_loss": 0.6496688412927646,
+      "best_val_f1": 0.6223776223776224,
+      "test_f1": 0.6217279262172792,
+      "test_loss": 0.6539346569549667
+    },
+    {
+      "seed": 1,
+      "run_name": "mixed",
+      "train_size": 29129,
+      "val_size": 3237,
+      "test_size": 13872,
+      "best_epoch": 2,
+      "best_val_loss": 0.6509399214459674,
+      "best_val_f1": 0.5934755332496863,
+      "test_f1": 0.5933969827272064,
+      "test_loss": 0.6528724654735578
+    }
+  ]
+}
