@@ -4,7 +4,7 @@ import logging
 import math
 import os
 import random
-from dataclasses import dataclass
+from ..config.model import BertConfig
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +12,7 @@ from typing import Any
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
+
 
 import numpy as np
 import pandas as pd
@@ -62,34 +63,6 @@ def get_device(force_cpu: bool = False) -> torch.device:
     return torch.device("cpu")
 
 
-@dataclass
-class BertConfig:
-    model_name: str = "bert-base-uncased"
-    max_length: int = 128
-
-    # optimization
-    learning_rate: float = 2e-5
-    weight_decay: float = 0.01
-    batch_size: int = 64
-    num_train_epochs: int = 10
-    early_stopping_patience: int = 2
-    dropout_rate: float = 0.1
-
-    # imbalance handling
-    use_class_weights: bool = True
-
-    # device / precision
-    force_cpu: bool = False
-    fp16: bool = False
-    bf16: bool = False
-
-    # speed / experimentation
-    logging_steps: int = 100
-    sample_size: int | None = None
-    num_workers: int = 0
-
-    # misc
-    gradient_clip_val: float = 1.0
 
 
 class BertRepostPredictor:

@@ -1,89 +1,109 @@
 import argparse
+import json
+from datetime import datetime
+
 import pandas as pd
 
-from .DT_repost_predictor import RepostPredictor
-from .bert_repost_predictor import BertRepostPredictor, BertConfig
+from ..config.experiment import EXPERIMENT_CONFIGS
+from ..config.paths import PathsConfig
+from ..config.model import BertConfig
+from .xgb_repost_predictor import RepostPredictor
+from .bert_repost_predictor import BertRepostPredictor
 from .xgboost import build_xgboost
-import os
+
+
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Run model experiments")
     parser.add_argument(
-        "--model",
+        "--config",
         type=str,
-        choices=["dt", "bert"],
-        default="dt",
-        help="Which model family to run: dt or bert",
+        required=True,
+        choices=list(EXPERIMENT_CONFIGS.keys()),
+        help="Named experiment config to use",
     )
     parser.add_argument(
-        "--file",
+        "--save",
         type=str,
-        default="dataset.csv",
-        help="Name of dataset file (located in data/processed/datasets/)"
+        choices=["y", "n"],
+        default="n",
+        help="Whether to save results (y/n). Default: n",
     )
-    parser.add_argument(
-        "--eval",
-        type=str,
-        choices=["mixed", "ood", "id", "all"],
-        default="all",
-        help="Which evaluation to run",
-    )
-
-    #bert config
-    parser.add_argument("--bert_model_name", type=str, default="bert-base-uncased")
-    parser.add_argument("--max_length", type=int, default=128)
-    parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--epochs", type=int, default=2)
 
     args = parser.parse_args()
 
-    BASE_DIR = "data/processed/datasets"
-    data_path = os.path.join(BASE_DIR, args.file)
+    exp_cfg = EXPERIMENT_CONFIGS[args.config]
+    paths_cfg = PathsConfig()
 
+    data_path = paths_cfg.datasets_dir / exp_cfg.dataset_file
     df = pd.read_csv(data_path)
 
-    if args.model == "dt":
+    if exp_cfg.model == "xgb":
         predictor = RepostPredictor(build_xgboost)
-    elif args.model == "bert":
-        predictor = BertRepostPredictor(
-            BertConfig(
-                model_name=args.bert_model_name,
-                max_length=args.max_length,
-                batch_size=args.batch_size,
-                num_train_epochs=args.epochs,
-            )
-        )
+
+    elif exp_cfg.model == "bert":
+        predictor = BertRepostPredictor(BertConfig())
+
     else:
-        raise ValueError(f"Unsupported model type: {args.model}")
+        raise ValueError(f"Unsupported model type: {exp_cfg.model}")
 
-    print(f"\nRunning model: {args.model}")
-    print(f"\nRunning file: {args.file}")
+    print(f"\nRunning config: {args.config}")
+    print(f"Running model: {exp_cfg.model}")
+    print(f"Running file: {exp_cfg.dataset_file}")
+    print(f"Save outputs: {args.save}")
 
-    if args.eval in ["mixed", "all"]:
+    results = {}
+
+    if exp_cfg.evaluation_mode in ["mixed", "all"]:
         print("\nMixed:")
-        print(predictor.evaluate_mixed(df))
+        mixed_result = predictor.evaluate_mixed(df)
+        print(mixed_result)
+        results["mixed"] = mixed_result
 
-    if args.eval in ["ood", "all"]:
+    if exp_cfg.evaluation_mode in ["ood", "all"]:
         print("\nOut-of-Distribution:")
-        print(predictor.evaluate_out_of_distribution(df))
+        ood_result = predictor.evaluate_out_of_distribution(df)
+        print(ood_result)
+        results["ood"] = ood_result
 
-    if args.eval in ["id", "all"]:
+    if exp_cfg.evaluation_mode in ["id", "all"]:
         print("\nIn-Distribution:")
-        print(predictor.evaluate_in_distribution(df))
+        id_result = predictor.evaluate_in_distribution(df)
+        print(id_result)
+        results["id"] = id_result
 
-    if args.model == "dt":
+    if args.save == "y":
+        output_dir = paths_cfg.results_dir / exp_cfg.model
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = output_dir / f"{args.config}_{timestamp}.json"
+
+        payload = {
+            "config_name": args.config,
+            "model": exp_cfg.model,
+            "dataset_file": exp_cfg.dataset_file,
+            "evaluation_mode": exp_cfg.evaluation_mode,
+            "results": results,
+        }
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+
+        print(f"\nResults saved to: {output_path}")
+
+    if args.save == "y" and exp_cfg.model == "xgb" and exp_cfg.save_feature_gains:
         print("\nFeature importance:")
         gains_df = predictor.get_feature_gains()
         print(gains_df)
 
-        output_dir = "results/DT/Feature_analysis"
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = paths_cfg.feature_analysis_dir
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-        filename = f"{os.path.splitext(args.file)[0]}_feature_gains.csv"
-        output_path = os.path.join(output_dir, filename)
+        filename = f"{data_path.stem}_feature_gains.csv"
+        output_path = output_dir / filename
 
         gains_df.to_csv(output_path, index=False)
-
         print(f"\nFeature gains saved to: {output_path}")
 
 

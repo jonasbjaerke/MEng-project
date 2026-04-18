@@ -39,16 +39,13 @@ class DatasetBuilder(ABC):
             hashtag = post.get("hashtag")
             if not hashtag:
                 continue
-
-            reposters = post.get("stored_reposters") or []
-
+            
             if hashtag not in hashtag_users:
                 hashtag_users[hashtag] = set()
             if hashtag not in hashtag_posts:
                 hashtag_posts[hashtag] = []
 
-            if self._permission(reposters):
-                hashtag_posts[hashtag].append((P_id, post))
+            hashtag_posts[hashtag].append((P_id, post))
 
         hashtags = list(hashtag_users.keys())
 

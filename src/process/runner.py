@@ -1,21 +1,18 @@
-
-
-from pathlib import Path
-from .text_processing import TextFeaturePipeline
+from ..config.paths import PathsConfig
 from ..utils import get_json
+from .text_processing import TextFeaturePipeline
 
 
 def run():
-    PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    paths_cfg = PathsConfig()
 
-    posts_path = PROJECT_ROOT / "data" / "raw" / "posts" / "postsFinal.json"
-    users_path = PROJECT_ROOT / "data" / "raw" / "users" / "usersFinal.json"
+    posts_path = paths_cfg.posts_dir / "postsFinal.json"
+    users_path = paths_cfg.users_dir / "usersFinal.json"
 
     posts = get_json(posts_path)
     users = get_json(users_path)
 
     pipeline = TextFeaturePipeline()
-
     pipeline.run(posts, users)
 
     print("Text feature pipeline complete.")

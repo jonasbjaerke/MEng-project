@@ -1,8 +1,9 @@
-import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from .DT_repost_predictor import RepostPredictor
+from ..config.dataset import HYBRID_1TO5
+from ..config.paths import PathsConfig
+from .xgb_repost_predictor import RepostPredictor
 from .xgboost import build_xgboost
 
 
@@ -27,13 +28,18 @@ def get_next_removable_feature(gain_df, ignored_features):
 
 
 def main():
-    df = pd.read_csv("data/processed/datasets/U5.csv")
+    paths_cfg = PathsConfig()
+    dataset_cfg = HYBRID_1TO5
+
+    data_path = paths_cfg.datasets_dir / dataset_cfg.output_filename
+    output_dir = paths_cfg.feature_analysis_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    df = pd.read_csv(data_path)
 
     results = []
     ignored_features = []
     n_runs = 50
-
-    os.makedirs("data/plots", exist_ok=True)
 
     for run_idx in range(n_runs):
         predictor = RepostPredictor(build_xgboost)
@@ -42,6 +48,7 @@ def main():
             predictor.ignore_features(ignored_features)
 
         print(f"\n=== Run {run_idx + 1} / {n_runs} ===")
+        print(f"Dataset: {dataset_cfg.output_filename}")
         print(f"Ignored features: {ignored_features}")
 
         mixed_result = predictor.evaluate_mixed(df)
@@ -93,11 +100,18 @@ def main():
 
     plt.legend()
     plt.tight_layout()
-    plt.savefig("data/plots/feature_removal_f1.png", dpi=300)
+
+    plot_path = output_dir / "feature_removal_f1_hybrid_1to5.png"
+    results_path = output_dir / "feature_removal_f1_hybrid_1to5.csv"
+
+    plt.savefig(plot_path, dpi=300)
     plt.close()
 
+    results_df.to_csv(results_path, index=False)
+
     print("\nSaved:")
-    print("- plots/feature_removal_f1.png")
+    print(f"- {plot_path}")
+    print(f"- {results_path}")
     print("\nResults:")
     print(results_df)
 

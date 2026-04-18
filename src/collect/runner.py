@@ -1,30 +1,16 @@
-
-from datetime import datetime
 from .pipeline import DataPipeline
+from ..config import CollectionConfig
 
 
 if __name__ == "__main__":
-
-    hashtags = [
-        "BlackHistoryMonth",
-        "Trump",
-        "Superbowl"
-    ]
-
-    since_dt = datetime(2026, 1, 15)
-    until_dt = datetime(2026, 3, 2)
-
-    max_posts_per_hashtag = 11000
-    min_posts_per_hashtag = 9000
-
-
+    cfg = CollectionConfig()
 
     pipeline = DataPipeline(
-        hashtags=hashtags,
-        since_dt=since_dt,
-        until_dt=until_dt,
-        max_posts_per_hashtag=max_posts_per_hashtag,
-        min_posts_per_hashtag=min_posts_per_hashtag,
+        hashtags=list(cfg.hashtags),
+        since_dt=cfg.since_dt,
+        until_dt=cfg.until_dt,
+        max_posts_per_hashtag=cfg.max_posts_per_hashtag,
+        min_posts_per_hashtag=cfg.min_posts_per_hashtag,
     )
 
     pipeline.run()
