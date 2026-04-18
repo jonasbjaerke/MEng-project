@@ -1,23 +1,14 @@
-from dataclasses import dataclass
 from xgboost import XGBClassifier
 
-
-@dataclass
-class XGBoostConfig:
-    max_depth: int = 8
-    learning_rate: float = 0.1
-    n_estimators: int = 100
-    scale_pos_weight: float = 3.0
-    reg_lambda: float = 1.0
+from ..config.model import XGBoostConfig
 
 
-def build_xgboost(config: XGBoostConfig = None, random_state: int = 42):
+def build_xgboost(config: XGBoostConfig | None = None, random_state: int = 42):
     """
     Returns an XGBClassifier instance.
 
     Compatible with RepostPredictor.
     """
-
     config = config or XGBoostConfig()
 
     return XGBClassifier(
