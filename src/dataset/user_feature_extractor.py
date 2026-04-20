@@ -28,9 +28,7 @@ class UserFeatureExtractor:
 
         self.text_dict = get_json(TEXTDICT)
 
-    # =====================================================
-    # Historical message helpers
-    # =====================================================
+
 
     def get_post_features(self, post_id):
         return self.text_dict.get(post_id, {})
@@ -87,9 +85,6 @@ class UserFeatureExtractor:
 
         return self.aggregate_features(feature_list)
 
-    # =====================================================
-    # History statistics
-    # =====================================================
 
     def history_stats(self, history, exclude_post_id):
 
@@ -154,9 +149,7 @@ class UserFeatureExtractor:
 
         return repost_pct, avg_interval, 0, 0, 0, 0
 
-    # =====================================================
-    # Interaction helpers
-    # =====================================================
+
 
     @staticmethod
     def mention_stats(history, handle, exclude_post_id):
@@ -195,9 +188,6 @@ class UserFeatureExtractor:
             and h.get("parent_post_uri") != exclude_post_id
         )
 
-    # =====================================================
-    # Main feature builder
-    # =====================================================
 
     def calc_features(self, A_id, S_id, P_id, post, label):
 
@@ -284,9 +274,7 @@ class UserFeatureExtractor:
             "U-HA_S_TweetNum": len(S["history"]),
         })
 
-        # =================================================
-        # Historical message features
-        # =================================================
+    
 
         # Receiver history (A)
         A_hist_msg_features = self.get_last_n_posts_features(

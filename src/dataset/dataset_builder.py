@@ -114,7 +114,7 @@ class DatasetBuilder(ABC):
                 continue
             rows.append(pos_row)
 
-            # -------- Negative -------- # Note we divide neg R into groups based on hashtag they reposted some post. this is not truly ranodm. might be better to divide groups randomly.
+            #  Negative
             neg_indices = self.rng.choice(
                 len(hashtag_posts),
                 size=min(neg_per_pos, len(hashtag_posts)),

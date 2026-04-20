@@ -1,4 +1,4 @@
-# src/data/pipeline.py
+
 
 from pathlib import Path
 from datetime import datetime
@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class DataPipeline:
     """
-    High-level orchestration of the full data collection pipeline.
+    full data collection pipeline.
     """
 
     def __init__(
@@ -45,9 +45,7 @@ class DataPipeline:
         self.api = BlueskyAPI()
         self.downloader = HashtagDownloader(self.api)
 
-    # -----------------------------
     # Stage 1: Download posts
-    # -----------------------------
     def download_posts(self):
         print("Downloading hashtag posts...")
 
@@ -63,9 +61,7 @@ class DataPipeline:
 
         print("Finished downloading.")
 
-    # -----------------------------
     # Stage 2: Load posts
-    # -----------------------------
     def load_posts(self):
         print("Loading posts into memory...")
 
@@ -93,9 +89,7 @@ class DataPipeline:
         print(f"Loaded {len(posts)} posts.")
         return posts
 
-    # -----------------------------
     # Stage 3: Build users
-    # -----------------------------
     async def build_users(self, posts):
         print("Collecting user data...")
 
@@ -106,9 +100,8 @@ class DataPipeline:
         return users
     
     
-    # -----------------------------
     # Run entire pipeline
-    # -----------------------------
+
     def run(self):
 
         # Step 1: download

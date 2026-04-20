@@ -15,7 +15,6 @@ class BertConfig:
     model_name: str = "bert-base-uncased"
     max_length: int = 128
 
-    # optimization
     learning_rate: float = 2e-5
     weight_decay: float = 0.01
     batch_size: int = 64
@@ -36,5 +35,4 @@ class BertConfig:
     sample_size: int | None = None
     num_workers: int = 0
 
-    # misc
     gradient_clip_val: float = 1.0

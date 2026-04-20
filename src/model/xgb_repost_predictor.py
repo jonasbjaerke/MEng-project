@@ -23,9 +23,8 @@ class RepostPredictor:
         self._feature_gains = None
         self._feature_names = None
 
-    # --------------------------------------------------
     # Data Preparation
-    # --------------------------------------------------
+   
 
     def ignore_features(self, features):
         if isinstance(features, str):
@@ -50,9 +49,8 @@ class RepostPredictor:
 
         return X, y
 
-    # --------------------------------------------------
     # Mixed Evaluation
-    # --------------------------------------------------
+   
 
     def evaluate_mixed(self, df, n_runs=3):
         X, y = self._prepare(df)
@@ -87,9 +85,7 @@ class RepostPredictor:
             "f1_std": np.std(scores)
         }
 
-    # --------------------------------------------------
     # In-Distribution (per hashtag)
-    # --------------------------------------------------
 
     def evaluate_in_distribution(self, df, n_runs=3):
         results = {}
@@ -100,9 +96,7 @@ class RepostPredictor:
 
         return results
 
-    # --------------------------------------------------
     # Out-of-Distribution (Leave-One-Hashtag-Out)
-    # --------------------------------------------------
 
     def evaluate_out_of_distribution(self, df, n_splits=3):
         results = {}
@@ -115,9 +109,7 @@ class RepostPredictor:
             X_train_full, y_train_full = self._prepare(train_df)
             X_test, y_test = self._prepare(test_df)
 
-            # --------------------------------------------------
-            # Align categorical columns (critical for OOD)
-            # --------------------------------------------------
+
             cat_cols = X_train_full.select_dtypes(include="category").columns
 
             for col in cat_cols:
@@ -134,9 +126,8 @@ class RepostPredictor:
                 X_test[col] = X_test[col].astype("category")
                 X_test[col] = X_test[col].cat.set_categories(train_categories)
 
-            # --------------------------------------------------
             # K-Fold training on training data
-            # --------------------------------------------------
+     
             scores = []
             kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
 

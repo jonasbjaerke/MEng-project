@@ -40,9 +40,6 @@ class UserDataCollector:
         self.rps = rps
         self.concurrency = concurrency
 
-    # =====================================================
-    # ENTRYPOINT
-    # =====================================================
 
     async def collect(self):
 
@@ -59,9 +56,7 @@ class UserDataCollector:
 
         return self.users
 
-    # =====================================================
-    # HELPERS
-    # =====================================================
+
 
     def _author_dids(self):
         return {
@@ -75,9 +70,7 @@ class UserDataCollector:
             ts.replace("Z", "+00:00")
         ).astimezone(timezone.utc)
 
-    # =====================================================
-    # REPOSTERS
-    # =====================================================
+
 
     async def _collect_reposters(self):
 
@@ -128,9 +121,7 @@ class UserDataCollector:
 
         self.user_dids |= self._author_dids()
 
-    # =====================================================
-    # FOLLOW RELATIONS
-    # =====================================================
+
 
     async def _collect_follow_relations(self):
 
@@ -200,9 +191,7 @@ class UserDataCollector:
             if follows
             }
 
-    # =====================================================
-    # PROFILE + HISTORY
-    # =====================================================
+
 
     async def _collect_profiles_and_history(self):
 
@@ -298,9 +287,7 @@ class UserDataCollector:
                 record = post.get("record") or {}
                 reason = item.get("reason") or {}
 
-                # -----------------------------------------
-                # Activity Type
-                # -----------------------------------------
+   
 
                 if reason.get("$type", "").endswith("reasonRepost"):
                     activity_type = "repost"
@@ -312,9 +299,7 @@ class UserDataCollector:
                     activity_type = "post"
                     reposted_at = None
 
-                # -----------------------------------------
-                # Parent info (only for replies)
-                # -----------------------------------------
+  
 
                 parent_post_uri = None
                 parent_author_did = None
@@ -328,16 +313,12 @@ class UserDataCollector:
                         (parent.get("author") or {}).get("did")
                     )
 
-                # -----------------------------------------
-                # Text + link detection
-                # -----------------------------------------
+       
 
                 text = record.get("text") or ""
                 has_links = ("http://" in text) or ("https://" in text)
 
-                # -----------------------------------------
-                # Media detection
-                # -----------------------------------------
+ 
 
                 media_type = None
                 media_count = 0

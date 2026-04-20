@@ -39,7 +39,7 @@ class TextFeaturePipeline:
         Stream {post_uri, text} to JSONL file.
 
         Includes:
-        - main posts from `posts`
+        - main posts from `posts
         - historical posts from each user in `users[did]["history"]`
 
         Safe for millions of rows.
@@ -73,9 +73,6 @@ class TextFeaturePipeline:
                     text = item.get("text")
                     write_row(f, uri, text)
 
-    # --------------------------------------------------
-    # Step 2: Compute feature parquet chunks
-    # --------------------------------------------------
 
     def run_feature_extraction(
         self,
@@ -117,9 +114,7 @@ class TextFeaturePipeline:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-    # --------------------------------------------------
-    # Step 3: Merge parquet chunks into final JSON
-    # --------------------------------------------------
+
 
     def build_final_feature_dict(self):
         """
@@ -164,9 +159,7 @@ class TextFeaturePipeline:
 
         print(f"Feature dict written to {self.final_json}")
 
-    # --------------------------------------------------
-    # Cleanup
-    # --------------------------------------------------
+
 
     def cleanup(self):
         """
@@ -175,9 +168,7 @@ class TextFeaturePipeline:
         if self.temp_file.exists():
             self.temp_file.unlink()
 
-    # --------------------------------------------------
-    # Full pipeline
-    # --------------------------------------------------
+
 
     def run(self, posts: dict, users: dict):
         self.build_text_jsonl(posts, users)
