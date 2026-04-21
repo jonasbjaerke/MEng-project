@@ -1,0 +1,52 @@
+Results:
+    run  n_removed                                     removed_so_far  mixed_f1  ood_avg_f1      top_feature_removed_next
+0     1          0                                               None  0.835130    0.751476                 U-P_R_FollowS
+1     2          1                                      U-P_R_FollowS  0.750442    0.641540               U-HA-R_repostsS
+2     3          2                     U-P_R_FollowS, U-HA-R_repostsS  0.736029    0.625912          U-HA_S_RetweetedRate
+3     4          3  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.736137    0.627746        U-HA_R_AverageInterval
+4     5          4  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.723394    0.613283         U-HA_R_RetweetPercent
+5     6          5  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.719864    0.610801              U-HA_S_LikedRate
+6     7          6  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.710588    0.596313            U-HA_S_RepliedRate
+7     8          7  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.710457    0.590860         U-HA_S_RetweetPercent
+8     9          8  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.709557    0.590195             U-HA_S_QuotedRate
+9    10          9  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.709449    0.589177             U-P_S_FollowerNum
+10   11         10  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.710461    0.592313               U-HA_R_MentionS
+11   12         11  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.710461    0.592313            U-HA_R_MentionPerS
+12   13         12  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.711483    0.591214               U-HA_S_MentionR
+13   14         13  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.711483    0.591214            U-HA_S_MentionPerR
+14   15         14  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.710998    0.587117          U-P_S_FollowerNumDay
+15   16         15  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.708366    0.579797             U-P_S_FolloweeNum
+16   17         16  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.707768    0.578887          U-P_S_FolloweeNumDay
+17   18         17  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.703711    0.571419          U-P_R_FollowerNumDay
+18   19         18  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.703756    0.570930             U-P_R_FollowerNum
+19   20         19  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.699871    0.575201               U-HM_R_hs_count
+20   21         20  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.691176    0.564797             U-P_R_FolloweeNum
+21   22         21  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.691506    0.563123          U-HM_S_topic_overall
+22   23         22  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.691315    0.562508  U-HM_S_news_&_social_concern
+23   24         23  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.695321    0.561318                U-HM_S_emo_joy
+24   25         24  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.692281    0.559350             U-P_S_TweetNumDay
+25   26         25  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.692165    0.557322          U-P_R_FolloweeNumDay
+26   27         26  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.685753    0.555578          U-HA_R_RetweetedRate
+27   28         27  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.683999    0.554610            U-HA_R_RepliedRate
+28   29         28  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.683754    0.552843             U-HA_R_QuotedRate
+29   30         29  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.681150    0.548381              U-HA_R_LikedRate
+30   31         30  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.673020    0.537456  U-HM_R_news_&_social_concern
+31   32         31  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.673798    0.539743                  U-HM_R_irony
+32   33         32  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.662246    0.532334          U-HM_R_other_hobbies
+33   34         33  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.661437    0.533442          U-HM_R_topic_overall
+34   35         34  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.664434    0.530529         U-HM_R_arts_&_culture
+35   36         35  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.660622    0.530785             U-P_R_TweetNumDay
+36   37         36  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.662407    0.528748            U-HM_R_emo_disgust
+37   38         37  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.662042    0.528786                 U-HM_R_gaming
+38   39         38  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.655484    0.526785               U-HA_R_TweetNum
+39   40         39  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.659373    0.523449        U-HM_R_GunningFogIndex
+40   41         40  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.658553    0.524515               U-HM_R_compound
+41   42         41  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.657044    0.523684            U-HM_R_emo_overall
+42   43         42  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.656261    0.524441         U-HM_S_DaleChallIndex
+43   44         43  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.654116    0.523611          U-HM_R_hs_aggressive
+44   45         44  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.654905    0.524867          U-HM_R_complex_words
+45   46         45  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.654741    0.523956                  U-HM_R_emoji
+46   47         46  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.655087    0.522707             U-HM_S_emo_others
+47   48         47  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.653955    0.521804           U-HM_S_Coleman-Liau
+48   49         48  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.653932    0.518751   U-HM_S_diaries_&_daily_life
+49   50         49  U-P_R_FollowS, U-HA-R_repostsS, U-HA_S_Retweet...  0.652758    0.520070              U-HM_R_SMOGIndex
