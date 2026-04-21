@@ -99,53 +99,65 @@ This includes recollecting data from Bluesky and rebuilding the datasets from th
 
 > **Important:** exact end-to-end reproduction from live Bluesky collection is unlikely unless the same data snapshots are preserved. Posts, users, and engagement behavior can change over time.
 
-For the most faithful reproduction of the reported model outputs, prefer using the original intermediate data.
+For the most faithful reproduction of the reported model outputs, prefer using the original intermediate data if available.
 
 ---
 
 ## Expected data layout
 
-The code expects a `data/` directory rooted at the repository.
-
-A practical layout is:
+After gathering all data, the `data/` directory should look like this:
 
 ```text
 data/
-├── raw/
-│   ├── hashtags/
-│   ├── posts/
-│   │   ├── posts_new.json
-│   │   └── postsFinal.json
-│   └── users/
-│       ├── users_new.json
-│       ├── usersFinal.json
-│       └── texts/
-└── processed/
-    └── datasets/
+├── processed/
+│   ├── datasets/
+│   └── text_features.json
+└── raw/
+    ├── hashtags/
+    │   ├── AI.jsonl
+    │   ├── Anime.jsonl
+    │   ├── BlackHistoryMonth.jsonl
+    │   ├── Booksky.jsonl
+    │   ├── Gaza.jsonl
+    │   ├── ICE.jsonl
+    │   ├── Pokemon.jsonl
+    │   ├── Superbowl.jsonl
+    │   ├── TheTraitors.jsonl
+    │   └── Trump.jsonl
+    ├── posts/
+    │   └── postsFinal.json
+    └── users/
+        └── usersFinal.json
 ```
 
-The important thing is that downstream steps expect the following files:
+For reproduction purposes, the important files are:
 
 - `data/raw/posts/postsFinal.json`
 - `data/raw/users/usersFinal.json`
+- `data/processed/text_features.json`
+- `data/processed/datasets/`
 
-The collection pipeline writes:
+The folder `data/raw/hashtags/` contains the hashtag-level raw collections used to build the final data.
 
-- `data/raw/posts/posts_new.json`
-- `data/raw/users/users_new.json`
-
-So after collection, you may need to rename or copy the files:
-
-```bash
-cp data/raw/posts/posts_new.json data/raw/posts/postsFinal.json
-cp data/raw/users/users_new.json data/raw/users/usersFinal.json
-```
+The data used for the project is available in the Google Drive folder: "https://drive.google.com/drive/folders/1TteKwECD3Ck7to5o_T6PzqpOXWY9wRAR"
 
 ---
 
 ## Full pipeline: how to reproduce from scratch
 
-## 1. Collect raw data
+## 1. Obtain the data
+
+There are two ways to proceed.
+
+### Option A: Use the original project data
+
+This is the recommended path if your goal is to reproduce the reported results as closely as possible.
+
+Download the project data from the Google Drive folder, then place it so that the repository matches the `data/` layout shown above.
+
+This avoids differences caused by recollecting live Bluesky data.
+
+### Option B: Recollect the raw data yourself
 
 Run:
 
@@ -179,21 +191,22 @@ If you change any of those settings, you are no longer reproducing the same coll
 
 ### Notes
 
-- This step depends on Bluesky access and whatever credentials or API setup the collection code requires.
-- If Bluesky content has changed since the original run, your collected data may differ.
+- Exact result reproduction is best done with the original shared data, not with fresh collection.
+- If Bluesky content has changed since the original run, recollected data may differ.
 
 ---
 
-## 2. Prepare the filenames expected downstream
+## 2. Verify the expected files are present
 
-After collection, make sure the downstream filenames exist:
+Before running the processing, dataset, or model stages, make sure these files exist:
 
-```bash
-cp data/raw/posts/posts_new.json data/raw/posts/postsFinal.json
-cp data/raw/users/users_new.json data/raw/users/usersFinal.json
+```text
+data/raw/posts/postsFinal.json
+data/raw/users/usersFinal.json
+data/processed/text_features.json
 ```
 
-This matters because the dataset and processing configs are wired to the `*Final.json` filenames.
+If you downloaded the original shared data and placed it in the correct layout, you should already have them.
 
 ---
 
@@ -206,6 +219,12 @@ uv run python -m src.process.runner
 ```
 
 This stage reads the collected post and user JSON files and generates the processed text features needed by later steps.
+
+After this step, the processed feature file should exist at:
+
+```text
+data/processed/text_features.json
+```
 
 Run this only after `postsFinal.json` and `usersFinal.json` are in place.
 
@@ -253,6 +272,7 @@ The dataset configs use:
 
 - `postsFinal.json`
 - `usersFinal.json`
+- `text_features.json`
 - `dataset_seed = 42`
 
 If you want to reproduce the same datasets, keep those defaults unchanged.
@@ -350,8 +370,6 @@ uv sync
 
 ```bash
 uv run python -m src.collect.runner
-cp data/raw/posts/posts_new.json data/raw/posts/postsFinal.json
-cp data/raw/users/users_new.json data/raw/users/usersFinal.json
 ```
 
 ### C. Process text features
@@ -471,12 +489,7 @@ If you need exact numerical agreement with earlier runs, reuse the original inte
 Run commands from the repository root and ensure the environment is installed correctly.
 
 ### Missing `postsFinal.json` or `usersFinal.json`
-Copy the collected files into the expected names:
-
-```bash
-cp data/raw/posts/posts_new.json data/raw/posts/postsFinal.json
-cp data/raw/users/users_new.json data/raw/users/usersFinal.json
-```
+Make sure the project data has been downloaded or collected and placed in the expected layout under `data/raw/posts/` and `data/raw/users/`.
 
 ### Dataset config not recognized
 Make sure you are using one of the valid dataset config names listed above.
@@ -517,8 +530,6 @@ uv sync
 
 # Collect raw data
 uv run python -m src.collect.runner
-cp data/raw/posts/posts_new.json data/raw/posts/postsFinal.json
-cp data/raw/users/users_new.json data/raw/users/usersFinal.json
 
 # Process
 uv run python -m src.process.runner
@@ -552,8 +563,8 @@ To reproduce the results in this repository:
 
 1. install the locked environment
 2. collect or reuse the raw data
-3. make sure the expected `postsFinal.json` and `usersFinal.json` files exist
-4. run the processing stage
+3. make sure `postsFinal.json`, `usersFinal.json`, and `text_features.json` exist in the expected locations
+4. run the processing stage if you need to regenerate text features
 5. build the datasets using the named dataset configs
 6. run the experiments using the named experiment configs
 7. compare your outputs with the files already present in `results/`
