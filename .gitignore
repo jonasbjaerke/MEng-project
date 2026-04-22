@@ -20,7 +20,8 @@ report
 !/notebooks/entropy_analysis.ipynb
 /extra/
 
-/data/
+/data/**
+!/data/**/
 
 __pycache__
 
