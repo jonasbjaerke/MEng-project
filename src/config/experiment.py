@@ -59,10 +59,18 @@ BERT_1TO1 = ExperimentConfig(
     save_feature_gains=False,
 )
 
+
 BERT_1TO5 = ExperimentConfig(
     model="bert",
     evaluation_mode="mixed",
     dataset_file="dataset_bert_1to5.csv",
+    save_feature_gains=False,
+)
+
+MESSAGE_1TO5_UNIQUE_PID = ExperimentConfig(
+    model="xgb",
+    evaluation_mode="all",
+    dataset_file="dataset_message_1to5_unique_pid.csv",
     save_feature_gains=False,
 )
 
@@ -76,4 +84,5 @@ EXPERIMENT_CONFIGS = {
     "XGB_MESSAGE_1TO5": XGB_MESSAGE_1TO5,
     "BERT_1TO1": BERT_1TO1,
     "BERT_1TO5": BERT_1TO5,
+    "MESSAGE_1TO5_UNIQUE_PID": MESSAGE_1TO5_UNIQUE_PID,
 }

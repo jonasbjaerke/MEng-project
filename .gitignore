@@ -16,6 +16,8 @@ plots/
 
 report
 
+/notebooks/
+
 /data/
 
 __pycache__
