@@ -16,9 +16,9 @@ plots/
 
 report
 
-/notebooks/
-
-/extra/ 
+/notebooks/*
+!/notebooks/entropy_analysis.ipynb
+/extra/
 
 /data/
 
