@@ -26,7 +26,7 @@ This README focuses on **how to reproduce the results**.
 │   ├── model/
 │   └── config/
 ├── results/
-├── feature_names.txt
+├── data/
 ├── pyproject.toml
 └── uv.lock
 ```
@@ -203,7 +203,6 @@ Before running the processing, dataset, or model stages, make sure these files e
 ```text
 data/raw/posts/postsFinal.json
 data/raw/users/usersFinal.json
-data/processed/text_features.json
 ```
 
 If you downloaded the original shared data and placed it in the correct layout, you should already have them.
