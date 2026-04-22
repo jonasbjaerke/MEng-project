@@ -22,6 +22,7 @@ report
 
 /data/**
 !/data/**/
+!/data/**/.gitkeep
 
 __pycache__
 
