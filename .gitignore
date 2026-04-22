@@ -18,6 +18,8 @@ report
 
 /notebooks/
 
+/extra/ 
+
 /data/
 
 __pycache__
