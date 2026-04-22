@@ -13,7 +13,7 @@ TEXTDICT = PROJECT_ROOT / "data" / "processed" / "text_features.json"
 class UserFeatureExtractor:
     """
     Computes all user-level, interaction-level, and historical
-    message-level features for a (A, S, P) triplet.
+    message-level features for a (R, S, P) triplet.
     """
 
     def __init__(self, users):

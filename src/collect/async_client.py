@@ -61,13 +61,7 @@ class BlueskyAsyncClient:
         retries: int = 2
     ):
         """
-        Safe GET request with:
-
-        - concurrency control
-        - rate limiting
-        - 429 handling
-        - retry logic
-        - timeout handling
+        Safe GET request
         """
 
         for attempt in range(retries):

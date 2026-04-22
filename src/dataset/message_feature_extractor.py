@@ -24,9 +24,7 @@ class MessageFeatureExtractor:
         return self.text_dict.get(post_id, {})
 
     def calc_features(self, A_id, S_id, P_id, post, label):
-        """
-        Returns message-level features for the current post P.
-        """
+
 
         row = {
             "A_id": A_id,

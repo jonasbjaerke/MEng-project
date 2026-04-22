@@ -69,10 +69,6 @@ class BertRepostPredictor:
     """
     Mixed-hashtag BERT repost predictor.
 
-    Expected dataframe columns:
-        - text
-        - label
-        - hashtag
     """
 
     def __init__(self, config: BertConfig | None = None):
