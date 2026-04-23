@@ -18,6 +18,7 @@ report
 
 /notebooks/*
 !/notebooks/entropy_analysis.ipynb
+!/notebooks/dataset_ratio.ipynb
 /extra/
 
 /data/**

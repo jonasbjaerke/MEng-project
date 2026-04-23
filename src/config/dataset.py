@@ -42,12 +42,14 @@ MESSAGE_1TO1 = DatasetConfig(
     builder="M",
     neg_per_pos=1,
     output_filename="dataset_message_1to1.csv",
+    dataset_seed= 878
 )
 
 MESSAGE_1TO5 = DatasetConfig(
     builder="M",
     neg_per_pos=5,
     output_filename="dataset_message_1to5.csv",
+
 )
 
 BERT_1TO1 = DatasetConfig(
