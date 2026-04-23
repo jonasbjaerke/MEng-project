@@ -19,6 +19,7 @@ This README focuses on **how to reproduce the results**.
 
 ```text
 .
+├── notebooks/
 ├── src/
 │   ├── collect/
 │   ├── process/
@@ -32,6 +33,20 @@ This README focuses on **how to reproduce the results**.
 ```
 
 Only the code under `src/` is needed for the main experimental pipeline.
+
+---
+
+## Notebooks
+
+The `notebooks/` folder contains limited analysis notebooks used to validate dataset construction and support specific experiment workflows.
+
+- **`entropy_analysis.ipynb`**  
+  Used for the **conditional entropy analysis of the message-feature dataset**. It is also used for experiments on a version of the dataset where **all `P_id` duplicates are removed**.
+
+- **`dataset_ratio.ipynb`**  
+  Used to **check that the ratios in the generated datasets are correct**, and to **correct them if they are not**.
+
+These notebooks are supplementary to the main pipeline in `src/` and are primarily used for analysis, validation, and experiment support.
 
 ---
 
@@ -443,9 +458,6 @@ To verify that your run matches the project outputs, compare the following.
 Check that:
 
 - the expected CSV files are created under `data/processed/datasets/`
-- the class ratio matches the config (`1:1` or `1:5`)
-- the expected identifier and label columns are present
-- feature columns align with `feature_names.txt`
 
 ### Model-level checks
 
@@ -504,18 +516,6 @@ The most common reasons are:
 - different dependency versions
 - mismatched dataset files
 - running from a different class ratio or evaluation mode
-
----
-
-## Feature reference
-
-The file `feature_names.txt` contains the feature glossary used in the project.
-
-Use it to interpret:
-
-- dataset columns
-- engineered feature groups
-- model feature importance outputs
 
 ---
 
